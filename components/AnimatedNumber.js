@@ -31,7 +31,7 @@ export default function AnimatedNumber({ value, formatter }) {
     };
 
     requestAnimationFrame(animate);
-  }, [value]); // intentionally leaving out displayValue to prevent infinite loops
+  }, [value]);
 
-  return <>{formatter ? formatter(displayValue) : Math.round(displayValue)}</>;
+  return <>{Math.round(displayValue).toLocaleString('id-ID')}</>;
 }

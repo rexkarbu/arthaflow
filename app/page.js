@@ -148,7 +148,7 @@ export default async function Home(props) {
             <div className="total-label" style={{ color: 'var(--success)' }}>Total Pemasukan</div>
             <div className="total-amount">
               <span>Rp</span>
-              <AnimatedNumber value={totalIncome} formatter={(v) => Math.round(v).toLocaleString('id-ID')} />
+              <AnimatedNumber value={totalIncome} />
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default async function Home(props) {
             <div className="total-label" style={{ color: 'var(--danger)' }}>Total Pengeluaran</div>
             <div className="total-amount">
               <span>Rp</span>
-              <AnimatedNumber value={totalExpense} formatter={(v) => Math.round(v).toLocaleString('id-ID')} />
+              <AnimatedNumber value={totalExpense} />
             </div>
           </div>
           <div className="total-meta" style={{ marginTop: '0.5rem' }}>
@@ -169,7 +169,7 @@ export default async function Home(props) {
             <div className="total-label" style={{ color: 'var(--text-sub)' }}>Saldo Sisa</div>
             <div className="total-amount">
               <span>Rp</span>
-              <AnimatedNumber value={balance} formatter={(v) => Math.round(v).toLocaleString('id-ID')} />
+              <AnimatedNumber value={balance} />
             </div>
           </div>
           <div className="total-meta" style={{ marginTop: '0.5rem' }}>
