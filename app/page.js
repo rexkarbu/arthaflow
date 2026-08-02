@@ -174,6 +174,19 @@ export default async function Home(props) {
     };
   });
 
+  const printReportDate = new Date().toLocaleString('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  });
+
+  const printCategoryRows = Object.entries(byCategory)
+    .sort(([, a], [, b]) => b - a)
+    .map(([cat, amt]) => ({
+      category: cat,
+      amount: amt,
+      pct: totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0
+    }));
+
   return (
     <div className="wrap">
 
@@ -190,6 +203,62 @@ export default async function Home(props) {
           <LogoutButton />
         </div>
       </header>
+
+      <div className="print-report-header">
+        <div className="print-brand">
+          <div className="print-brand-logo">AF</div>
+          <div>
+            <div className="print-brand-title">ArthaFlow</div>
+            <div className="print-brand-subtitle">Laporan Keuangan</div>
+          </div>
+        </div>
+        <div className="print-report-meta">
+          <div>
+            <span>Periode</span>
+            <strong>{monthLabel}</strong>
+          </div>
+          <div>
+            <span>Dicetak</span>
+            <strong>{printReportDate}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="print-report-summary">
+        <div className="print-summary-card">
+          <span>Pemasukan</span>
+          <strong>{formatRupiah(totalIncome)}</strong>
+        </div>
+        <div className="print-summary-card">
+          <span>Pengeluaran</span>
+          <strong>{formatRupiah(totalExpense)}</strong>
+        </div>
+        <div className="print-summary-card">
+          <span>Saldo</span>
+          <strong>{formatRupiah(balance)}</strong>
+        </div>
+      </div>
+
+      <div className="print-report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Kategori</th>
+              <th>Jumlah</th>
+              <th>Persentase</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printCategoryRows.map(row => (
+              <tr key={row.category}>
+                <td>{row.category}</td>
+                <td>{formatRupiah(row.amount)}</td>
+                <td>{row.pct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Ringkasan */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>

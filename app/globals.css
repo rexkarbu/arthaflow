@@ -141,6 +141,13 @@ body {
   margin-top: 2px;
 }
 
+/* ── PRINT REPORT BRANDING ── */
+.print-report-header,
+.print-report-summary,
+.print-report-table {
+  display: none;
+}
+
 /* ── PDF EXPORT BUTTON ── */
 .export-pdf-btn {
   background: transparent;
@@ -163,8 +170,10 @@ body {
   body {
     background: #ffffff !important;
     color: #111827 !important;
+    font-size: 11pt !important;
   }
 
+  .site-header,
   .site-header-right > *:not(.export-pdf-btn),
   .filter-bar,
   .card form,
@@ -179,13 +188,134 @@ body {
   .LoginForm,
   .LogoutButton,
   .ThemeToggle,
-  .MonthPicker {
+  .MonthPicker,
+  .main-grid,
+  .report-card,
+  .detail-page,
+  .budget-bar,
+  .trend-list,
+  .expense-list {
     display: none !important;
   }
 
   .wrap {
     max-width: none !important;
     padding: 0 !important;
+  }
+
+  .print-report-header,
+  .print-report-summary,
+  .print-report-table {
+    display: block !important;
+  }
+
+  .print-report-header {
+    border-bottom: 2px solid #1f2937;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .print-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .print-brand-logo {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.6rem;
+    background: #111827;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .print-brand-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .print-brand-subtitle {
+    font-size: 0.72rem;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .print-report-meta {
+    display: grid;
+    gap: 0.35rem;
+    text-align: right;
+    font-size: 0.72rem;
+    color: #374151;
+  }
+
+  .print-report-meta span {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.1rem;
+    color: #6b7280;
+  }
+
+  .print-report-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .print-summary-card {
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    padding: 0.8rem 0.9rem;
+  }
+
+  .print-summary-card span {
+    display: block;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+  }
+
+  .print-summary-card strong {
+    font-size: 0.95rem;
+    color: #111827;
+  }
+
+  .print-report-table {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-collapse: collapse;
+    page-break-inside: avoid;
+  }
+
+  .print-report-table th,
+  .print-report-table td {
+    border: 1px solid #d1d5db;
+    padding: 0.6rem 0.7rem;
+    text-align: left;
+    font-size: 0.76rem;
+    color: #111827;
+  }
+
+  .print-report-table th {
+    background: #111827;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.66rem;
   }
 
   .total-card,
