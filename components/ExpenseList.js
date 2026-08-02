@@ -1,8 +1,19 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
-import { Trash2, Search, X, Edit2, Check, Download } from 'lucide-react';
+import { Trash2, Search, X, Edit2, Check, Download, Utensils, Car, Gamepad2, ShoppingBag, Wallet, Receipt } from 'lucide-react';
 import { deleteExpense, updateExpense } from '@/app/actions';
+
+function getCategoryIcon(cat, type) {
+  if (type === 'income') return <Wallet size={16} />;
+  switch(cat) {
+    case 'Makanan': return <Utensils size={16} />;
+    case 'Transportasi': return <Car size={16} />;
+    case 'Hiburan': return <Gamepad2 size={16} />;
+    case 'Belanja': return <ShoppingBag size={16} />;
+    default: return <Receipt size={16} />;
+  }
+}
 
 // Static categories removed, using dynamic categories
 
@@ -220,11 +231,14 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
 
             return (
               <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`}>
-                <div className="expense-info" style={{ padding: '0.75rem 1rem' }}>
+                <div className="expense-icon">
+                  {getCategoryIcon(exp.category, exp.type)}
+                </div>
+                <div className="expense-info">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <div className="expense-desc">{exp.description}</div>
                     {exp.is_recurring === 1 && (
-                      <span title="Pengeluaran Rutin" style={{ fontSize: '0.7rem', background: 'var(--cyan-dim)', color: 'var(--cyan)', padding: '0.1rem 0.35rem', borderRadius: '3px', whiteSpace: 'nowrap' }}>🔄 Rutin</span>
+                      <span title="Pengeluaran Rutin" style={{ fontSize: '0.7rem', background: 'var(--accent-muted)', color: 'var(--text-sub)', padding: '0.1rem 0.35rem', borderRadius: '3px', whiteSpace: 'nowrap' }}>🔄 Rutin</span>
                     )}
                   </div>
                   {exp.notes && (
