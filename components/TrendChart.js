@@ -11,11 +11,22 @@ function formatRupiah(n) {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: '0.8rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-        <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text)' }}>{label}</div>
+      <div style={{ 
+        background: 'rgba(10, 10, 10, 0.85)', 
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(255,255,255,0.1)', 
+        padding: '0.875rem 1rem', 
+        borderRadius: '8px', 
+        fontSize: '0.8rem',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        color: '#fff'
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: '0.6rem', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.7rem' }}>{label}</div>
         {payload.map((entry, index) => (
-          <div key={index} style={{ color: entry.color, marginBottom: '0.2rem' }}>
-            {entry.name}: {formatRupiah(entry.value)}
+          <div key={index} style={{ color: entry.color, marginBottom: index === payload.length - 1 ? 0 : '0.3rem', display: 'flex', justifyContent: 'space-between', gap: '1.5rem' }}>
+            <span>{entry.name}</span> 
+            <span style={{ fontWeight: 600, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{formatRupiah(entry.value)}</span>
           </div>
         ))}
       </div>
