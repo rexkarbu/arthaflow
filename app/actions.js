@@ -275,6 +275,50 @@ export async function setBudget(formData) {
   revalidatePath('/');
 }
 
+// --- GOALS ---
+
+export async function getGoals() {
+  const userId = await getAuthSession();
+  if (!userId) return [];
+  const result = await db.execute({
+    sql: 'SELECT * FROM goals WHERE user_id = ? ORDER BY id DESC',
+    args: [userId]
+  });
+  return result.rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    target_amount: row.target_amount,
+    created_at: row.created_at
+  }));
+}
+
+export async function addGoal(formData) {
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const name = formData.get('name');
+  const target_amount = parseFloat(formData.get('target_amount'));
+
+  await db.execute({
+    sql: 'INSERT INTO goals (user_id, name, target_amount) VALUES (?, ?, ?)',
+    args: [userId, name, target_amount]
+  });
+
+  revalidatePath('/');
+}
+
+export async function deleteGoal(id) {
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  await db.execute({
+    sql: 'DELETE FROM goals WHERE id = ? AND user_id = ?',
+    args: [id, userId]
+  });
+
+  revalidatePath('/');
+}
+
 // --- CATEGORIES ---
 
 export async function getCategories(type = 'expense') {

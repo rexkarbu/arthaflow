@@ -1,4 +1,4 @@
-import { getExpenses, addExpense, getBudget, getAuthSession, seedRecurringExpenses, getCategories } from './actions';
+import { getExpenses, addExpense, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals } from './actions';
 import { cookies } from 'next/headers'; // used internally by getAuthSession
 import { Utensils, Bus, Gamepad2, ShoppingBag, MoreHorizontal } from 'lucide-react';
 import ExpenseList from '@/components/ExpenseList';
@@ -11,6 +11,7 @@ import LogoutButton from '@/components/LogoutButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import ExpenseForm from '@/components/ExpenseForm';
 import AnimatedNumber from '@/components/AnimatedNumber';
+import FinancialGoals from '@/components/FinancialGoals';
 import './globals.css';
 
 export const metadata = {
@@ -54,6 +55,16 @@ export default async function Home(props) {
   const rawExpenses = await getExpenses();
   const expenseCategories = await getCategories('expense');
   const incomeCategories = await getCategories('income');
+  const goals = await getGoals();
+  
+  // Calculate all-time total savings (for goals progress)
+  let allTimeIncome = 0;
+  let allTimeExpense = 0;
+  rawExpenses.forEach(e => {
+    if (e.type === 'income') allTimeIncome += e.amount;
+    else allTimeExpense += e.amount;
+  });
+  const totalSavings = allTimeIncome - allTimeExpense;
   
   const [year, month] = selectedMonth.split('-');
   const dateObj = new Date(parseInt(year), parseInt(month) - 1);
@@ -197,6 +208,8 @@ export default async function Home(props) {
           <ExpenseChart expenses={expenses} />
           
           <TrendChart data={trendData} />
+
+          <FinancialGoals goals={goals} totalSavings={totalSavings} />
 
           {/* Stats */}
           {expenses.length > 0 && (
