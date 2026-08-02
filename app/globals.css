@@ -59,6 +59,24 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.skeleton {
+  background: var(--bg-hover);
+  background-image: linear-gradient(
+    90deg,
+    var(--bg-hover) 0px,
+    var(--border) 40px,
+    var(--bg-hover) 80px
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear forwards;
+  border-radius: 4px;
+}
+
 /* ── LAYOUT ── */
 .wrap {
   max-width: 1200px;
