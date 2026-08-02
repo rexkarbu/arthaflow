@@ -84,41 +84,12 @@ export default function ExportPdfButton() {
   }
 
   function handleExport() {
-    const defaultApprover = window.localStorage.getItem(APPROVER_KEY) || 'Manajer Keuangan';
-    const defaultNotes = window.localStorage.getItem(NOTES_KEY) || 'Laporan disiapkan untuk keperluan audit internal dan arsip akuntansi.';
     const storedName = window.localStorage.getItem(COMPANY_KEY) || companyName;
+    const storedApprover = window.localStorage.getItem(APPROVER_KEY) || 'Manajer Keuangan';
+    const storedNotes = window.localStorage.getItem(NOTES_KEY) || 'Laporan disiapkan untuk keperluan audit internal dan arsip akuntansi.';
+    const storedLogo = window.localStorage.getItem(LOGO_KEY) || DEFAULT_LOGO;
 
-    const input = window.prompt('Masukkan nama perusahaan / instansi untuk laporan PDF:', storedName);
-    const nextName = (input || '').trim() || storedName;
-
-    const approverInput = window.prompt('Masukkan nama yang menyetujui laporan:', defaultApprover);
-    const approver = (approverInput || '').trim() || defaultApprover;
-
-    const notesInput = window.prompt('Masukkan catatan pada footer laporan:', defaultNotes);
-    const notes = (notesInput || '').trim() || defaultNotes;
-
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.style.display = 'none';
-    fileInput.addEventListener('change', (event) => {
-      const file = event.target.files?.[0];
-      if (!file) {
-        handlePrint(nextName, approver, notes, window.localStorage.getItem(LOGO_KEY) || DEFAULT_LOGO);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const logoDataUrl = typeof reader.result === 'string' ? reader.result : DEFAULT_LOGO;
-        handlePrint(nextName, approver, notes, logoDataUrl);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    document.body.appendChild(fileInput);
-    fileInput.click();
-    fileInput.remove();
+    handlePrint(storedName, storedApprover, storedNotes, storedLogo);
   }
 
   return (
