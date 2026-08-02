@@ -44,9 +44,9 @@ body {
 
 /* ── LAYOUT ── */
 .wrap {
-  max-width: 960px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2rem 2.5rem 4rem;
 }
 
 /* ── LOGIN ── */
@@ -137,8 +137,8 @@ body {
 /* ── GRID ── */
 .main-grid {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 2rem;
+  grid-template-columns: 350px 1fr;
+  gap: 2.5rem;
   align-items: start;
 }
 
@@ -551,7 +551,12 @@ option {
   letter-spacing: 1px;
 }
 
-/* ── MOBILE ── */
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .wrap { padding: 2rem 1.5rem 4rem; }
+  .main-grid { grid-template-columns: 300px 1fr; gap: 1.5rem; }
+}
+
 @media (max-width: 768px) {
   .site-title  { font-size: 1.4rem; }
   .site-badge  { display: none; }
@@ -559,6 +564,6 @@ option {
   .total-meta  { text-align: left; }
   .total-amount { font-size: 1.7rem; }
   .main-grid   { grid-template-columns: 1fr; }
-  .expense-right { flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+  .expense-right { flex-direction: column; align-items: flex-end; gap: 0.4rem; max-width: none; }
   .expense-amount { font-size: 0.82rem; }
 }
