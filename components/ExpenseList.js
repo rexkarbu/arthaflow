@@ -145,12 +145,13 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
         </div>
       ) : (
         <div className="expense-list">
-          {filtered.map(exp => {
+          {filtered.map((exp, index) => {
             const isEditing = editId === exp.id;
+            const delayStyle = { animationDelay: `${index * 0.05}s` };
             
             if (isEditing) {
               return (
-                <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`} style={{ padding: '0.75rem', display: 'block' }}>
+                <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`} style={{ padding: '0.75rem', display: 'block', ...delayStyle }}>
                   <form action={handleEditSubmit} className="edit-inline-form">
                     <input type="hidden" name="id" value={exp.id} />
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -230,7 +231,7 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
             }
 
             return (
-              <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`}>
+              <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`} style={delayStyle}>
                 <div className="expense-icon">
                   {getCategoryIcon(exp.category, exp.type)}
                 </div>

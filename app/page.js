@@ -10,6 +10,7 @@ import LoginForm from '@/components/LoginForm';
 import LogoutButton from '@/components/LogoutButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import ExpenseForm from '@/components/ExpenseForm';
+import AnimatedNumber from '@/components/AnimatedNumber';
 import './globals.css';
 
 export const metadata = {
@@ -144,23 +145,32 @@ export default async function Home(props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div className="total-card" style={{ marginBottom: 0 }}>
           <div>
-            <div className="total-label" style={{ color: '#28a745' }}>Total Pemasukan</div>
-            <div className="total-amount"><span>Rp</span>{totalIncome.toLocaleString('id-ID')}</div>
+            <div className="total-label" style={{ color: 'var(--success)' }}>Total Pemasukan</div>
+            <div className="total-amount">
+              <span>Rp</span>
+              <AnimatedNumber value={totalIncome} formatter={(v) => Math.round(v).toLocaleString('id-ID')} />
+            </div>
           </div>
         </div>
         <div className="total-card" style={{ marginBottom: 0 }}>
           <div>
             <div className="total-label" style={{ color: 'var(--danger)' }}>Total Pengeluaran</div>
-            <div className="total-amount"><span>Rp</span>{totalExpense.toLocaleString('id-ID')}</div>
+            <div className="total-amount">
+              <span>Rp</span>
+              <AnimatedNumber value={totalExpense} formatter={(v) => Math.round(v).toLocaleString('id-ID')} />
+            </div>
           </div>
           <div className="total-meta" style={{ marginTop: '0.5rem' }}>
             <div>Hari ini: <strong>{formatRupiah(todayExpense)}</strong></div>
           </div>
         </div>
-        <div className="total-card" style={{ marginBottom: 0, border: '1px solid var(--cyan)' }}>
+        <div className="total-card" style={{ marginBottom: 0 }}>
           <div>
-            <div className="total-label" style={{ color: 'var(--cyan)' }}>Saldo Sisa</div>
-            <div className="total-amount"><span>Rp</span>{balance.toLocaleString('id-ID')}</div>
+            <div className="total-label" style={{ color: 'var(--text-sub)' }}>Saldo Sisa</div>
+            <div className="total-amount">
+              <span>Rp</span>
+              <AnimatedNumber value={balance} formatter={(v) => Math.round(v).toLocaleString('id-ID')} />
+            </div>
           </div>
           <div className="total-meta" style={{ marginTop: '0.5rem' }}>
             <div>Total entri: <strong>{expenses.length}</strong></div>
