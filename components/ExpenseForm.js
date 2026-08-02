@@ -7,6 +7,7 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
   const [type, setType] = useState('expense'); // 'expense' | 'income'
   const [loading, setLoading] = useState(false);
   const [showNewCat, setShowNewCat] = useState(false);
+  const [amountError, setAmountError] = useState('');
   const formRef = useRef(null);
 
   async function handleSubmit(e) {
@@ -14,6 +15,16 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
     setLoading(true);
     const form = e.currentTarget;
     const fd = new FormData(form);
+
+    // Validate amount
+    const MAX_AMOUNT = 999_999_999_999; // 999 miliar
+    const amount = parseFloat(fd.get('amount'));
+    if (amount > MAX_AMOUNT) {
+      setAmountError('Jumlah maksimal adalah Rp 999.999.999.999');
+      setLoading(false);
+      return;
+    }
+    setAmountError('');
     
     // If adding a new category
     if (showNewCat) {
@@ -131,8 +142,15 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
               className="input"
               placeholder="50000"
               min="1"
+              max="999999999999"
+              onChange={() => setAmountError('')}
               required
             />
+            {amountError && (
+              <div style={{ color: 'var(--danger)', fontSize: '0.78rem', marginTop: '0.4rem' }}>
+                ⚠️ {amountError}
+              </div>
+            )}
           </div>
 
           <div className="field">
