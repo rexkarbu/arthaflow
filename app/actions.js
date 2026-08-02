@@ -215,21 +215,30 @@ export async function seedRecurringExpenses(targetMonth) {
   if (recurring.length === 0) return;
 
   const resExisting = await db.execute({
-    sql: `SELECT description FROM expenses WHERE user_id = ? AND is_recurring = 1 AND date LIKE ?`,
+    sql: `SELECT description, amount, category, notes, type FROM expenses WHERE user_id = ? AND is_recurring = 1 AND date LIKE ?`,
     args: [userId, `${targetMonth}%`]
   });
-  const existingThisMonth = resExisting.rows.map(r => r.description.toLowerCase());
+  const existingThisMonth = new Set(resExisting.rows.map(r => {
+    const type = (r.type || 'expense').toLowerCase();
+    const category = (r.category || 'Lainnya').toLowerCase();
+    const description = String(r.description).toLowerCase();
+    const amount = Number(r.amount);
+    const notes = String(r.notes || '').toLowerCase();
+    return `${type}::${category}::${description}::${amount}::${notes}`;
+  }));
 
   const targetDate = new Date(year, month - 1, 1).toISOString();
 
   const tx = await db.transaction('write');
   try {
     for (const exp of recurring) {
-      if (!existingThisMonth.includes(exp.description.toLowerCase())) {
+      const signature = `${String(exp.type || 'expense').toLowerCase()}::${String(exp.category || 'Lainnya').toLowerCase()}::${String(exp.description).toLowerCase()}::${Number(exp.amount)}::${String(exp.notes || '').toLowerCase()}`;
+      if (!existingThisMonth.has(signature)) {
         await tx.execute({
           sql: `INSERT INTO expenses (user_id, amount, description, date, category, notes, is_recurring, type) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
           args: [userId, exp.amount, exp.description, targetDate, exp.category, exp.notes || '', exp.type || 'expense']
         });
+        existingThisMonth.add(signature);
       }
     }
     await tx.commit();

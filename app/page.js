@@ -70,6 +70,14 @@ export default async function Home(props) {
   const dateObj = new Date(parseInt(year), parseInt(month) - 1);
   const monthLabel = dateObj.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
 
+  const reportDate = new Date(parseInt(year), parseInt(month) - 2, 1);
+  const reportMonth = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
+  const reportMonthLabel = reportDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+
+  const compareDate = new Date(parseInt(year), parseInt(month) - 3, 1);
+  const compareMonth = `${compareDate.getFullYear()}-${String(compareDate.getMonth() + 1).padStart(2, '0')}`;
+  const compareMonthLabel = compareDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+
   // Filter raw expenses by selected month
   const expenses = rawExpenses
     .filter(e => e.date.startsWith(selectedMonth))
@@ -77,6 +85,35 @@ export default async function Home(props) {
       ...e,
       dateStr: new Date(e.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
     }));
+
+  const reportExpenses = rawExpenses.filter(e => e.date.startsWith(reportMonth));
+  const compareExpenses = rawExpenses.filter(e => e.date.startsWith(compareMonth));
+
+  const reportIncome = reportExpenses.reduce((sum, e) => e.type === 'income' ? sum + e.amount : sum, 0);
+  const reportExpense = reportExpenses.reduce((sum, e) => e.type === 'income' ? sum : sum + e.amount, 0);
+  const reportBalance = reportIncome - reportExpense;
+
+  const previousExpense = compareExpenses.reduce((sum, e) => e.type === 'income' ? sum : sum + e.amount, 0);
+  const expenseDiff = reportExpense - previousExpense;
+  const expenseDiffPct = previousExpense > 0 ? Math.round((expenseDiff / previousExpense) * 100) : 0;
+
+  const reportByCategory = reportExpenses.reduce((acc, e) => {
+    if (e.type === 'income') return acc;
+    const c = e.category || 'Lainnya';
+    acc[c] = (acc[c] || 0) + e.amount;
+    return acc;
+  }, {});
+
+  const topReportCategory = Object.entries(reportByCategory)
+    .sort(([, a], [, b]) => b - a)[0];
+
+  const savingPct = reportIncome > 0 ? Math.round((reportBalance / reportIncome) * 100) : 0;
+  const savingTrendLabel = reportBalance >= 0 ? 'Hemat' : 'Boros';
+  const spendingTrendLabel = expenseDiff > 0
+    ? `Naik ${Math.abs(expenseDiffPct)}%`
+    : expenseDiff < 0
+      ? `Turun ${Math.abs(expenseDiffPct)}%`
+      : 'Tetap sama';
 
   // Budget
   const budget = await getBudget(selectedMonth);
@@ -204,6 +241,47 @@ export default async function Home(props) {
         <aside>
           {/* Form */}
           <ExpenseForm expenseCategories={expenseCategories} incomeCategories={incomeCategories} />
+
+          <div className="card report-card">
+            <div className="card-head">Laporan Bulanan Otomatis</div>
+            <div className="card-body">
+              <div className="report-header">
+                <div>
+                  <div className="report-period">{reportMonthLabel}</div>
+                  <div className="report-pill">{savingTrendLabel}</div>
+                </div>
+                <div className="report-percent">{Math.abs(savingPct)}%</div>
+              </div>
+
+              <div className="report-grid">
+                <div>
+                  <div className="report-label">Kategori terboros</div>
+                  <div className="report-value">
+                    {topReportCategory ? topReportCategory[0] : 'Belum ada data'}
+                  </div>
+                </div>
+                <div>
+                  <div className="report-label">Pengeluaran</div>
+                  <div className="report-value">{formatRupiah(reportExpense)}</div>
+                </div>
+                <div>
+                  <div className="report-label">Pemasukan</div>
+                  <div className="report-value">{formatRupiah(reportIncome)}</div>
+                </div>
+                <div>
+                  <div className="report-label">Selisih</div>
+                  <div className={`report-value ${reportBalance >= 0 ? 'report-positive' : 'report-negative'}`}>
+                    {reportBalance >= 0 ? '+' : '-'}{formatRupiah(Math.abs(reportBalance))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="report-compare">
+                <span>Bandingkan dengan {compareMonthLabel}</span>
+                <strong>{spendingTrendLabel}</strong>
+              </div>
+            </div>
+          </div>
 
           <ExpenseChart expenses={expenses} />
           
