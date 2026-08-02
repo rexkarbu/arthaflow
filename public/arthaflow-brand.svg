@@ -1,0 +1,8 @@
+<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="140" height="40" rx="8" fill="#111827"/>
+  <rect x="6" y="6" width="28" height="28" rx="6" fill="#F9FAFB"/>
+  <path d="M15 13H19.5C22.5376 13 25 15.4624 25 18.5C25 21.5376 22.5376 24 19.5 24H15V13Z" fill="#111827"/>
+  <path d="M19 16V21H19.5C20.8807 21 22 19.8807 22 18.5C22 17.1193 20.8807 16 19.5 16H19Z" fill="#F9FAFB"/>
+  <text x="40" y="17" fill="#F9FAFB" font-family="Verdana, Arial, sans-serif" font-size="10" font-weight="700">ARTHAFLOW</text>
+  <text x="40" y="29" fill="#94A3B8" font-family="Verdana, Arial, sans-serif" font-size="7" letter-spacing="1.4">LAPORAN KEUANGAN</text>
+</svg>

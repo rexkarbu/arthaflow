@@ -1,8 +1,9 @@
 'use client';
 
-export default function ExportPdfButton() {
+export default function ExportPdfButton({ companyName = 'ArthaFlow' }) {
   function handleExport() {
-    document.title = `ArthaFlow-Laporan-${new Date().toISOString().slice(0, 10)}`;
+    const reportTitle = `${companyName} - Laporan Bulanan - ${new Date().toISOString().slice(0, 10)}`;
+    document.title = reportTitle;
     window.print();
   }
 
@@ -11,8 +12,9 @@ export default function ExportPdfButton() {
       type="button"
       className="export-pdf-btn"
       onClick={handleExport}
+      title={`Cetak / Simpan PDF - ${companyName}`}
     >
-      Ekspor PDF
+      Cetak / Simpan PDF
     </button>
   );
 }
