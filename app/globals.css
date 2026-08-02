@@ -108,6 +108,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.site-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.site-header-right input[type='month'] {
+  min-width: 140px;
+  max-width: 160px;
+  flex-shrink: 0;
 }
 
 .site-title {

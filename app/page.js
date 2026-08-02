@@ -145,7 +145,7 @@ export default async function Home(props) {
           <h1 className="site-title">ArthaFlow<span>.</span></h1>
           <span className="site-badge">Catatan Keuangan</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div className="site-header-right">
           <MonthPicker currentMonth={selectedMonth} />
           <ThemeToggle />
           <LogoutButton />

@@ -26,7 +26,9 @@ export default function MonthPicker({ currentMonth }) {
         borderRadius: '4px',
         cursor: 'pointer',
         outline: 'none',
-        marginLeft: '1rem'
+        marginLeft: '1rem',
+        minWidth: '140px',
+        flexShrink: 0,
       }}
     />
   );
