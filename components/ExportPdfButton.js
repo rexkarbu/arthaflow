@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const COMPANY_KEY = 'arthaflow-company-name';
 const LOGO_KEY = 'arthaflow-company-logo';
@@ -71,7 +69,7 @@ export default function ExportPdfButton() {
     document.title = `${nextName} - Laporan Bulanan - ${new Date().toISOString().slice(0, 10)}`;
   }
 
-  async function saveDirectPdf(nextName, approver, notes, logoUrl) {
+  function handlePrint(nextName, approver, notes, logoUrl) {
     window.localStorage.setItem(COMPANY_KEY, nextName);
     window.localStorage.setItem(APPROVER_KEY, approver);
     window.localStorage.setItem(NOTES_KEY, notes);
@@ -82,61 +80,7 @@ export default function ExportPdfButton() {
 
     setCompanyName(nextName);
     updatePrintMetadata(nextName, approver, notes, logoUrl || DEFAULT_LOGO);
-
-    const exportRoot = document.querySelector('.print-report-export-root');
-    if (!exportRoot) {
-      return;
-    }
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const pageCanvasHeight = Math.floor(pdfHeight * (2.2));
-
-    const canvas = await html2canvas(exportRoot, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: exportRoot.scrollWidth,
-      windowHeight: exportRoot.scrollHeight,
-    });
-
-    const totalHeight = canvas.height;
-    const pixelsPerMm = canvas.width / pdfWidth;
-    const pageCropHeight = Math.max(1, Math.floor(pdfHeight * pixelsPerMm));
-    let currentY = 0;
-    let pageIndex = 0;
-
-    while (currentY < totalHeight) {
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = Math.min(pageCropHeight, totalHeight - currentY);
-      const ctx = pageCanvas.getContext('2d');
-
-      ctx.drawImage(
-        canvas,
-        0,
-        currentY,
-        canvas.width,
-        pageCanvas.height,
-        0,
-        0,
-        canvas.width,
-        pageCanvas.height,
-      );
-
-      const imageData = pageCanvas.toDataURL('image/png');
-
-      if (pageIndex > 0) {
-        pdf.addPage();
-      }
-
-      pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      currentY += pageCropHeight;
-      pageIndex += 1;
-    }
-
-    pdf.save(`${nextName.replace(/\s+/g, '-').toLowerCase()}-laporan-bulanan-${new Date().toISOString().slice(0, 10)}.pdf`);
+    window.print();
   }
 
   function handleExport() {
@@ -157,17 +101,17 @@ export default function ExportPdfButton() {
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     fileInput.style.display = 'none';
-    fileInput.addEventListener('change', async (event) => {
+    fileInput.addEventListener('change', (event) => {
       const file = event.target.files?.[0];
       if (!file) {
-        await saveDirectPdf(nextName, approver, notes, window.localStorage.getItem(LOGO_KEY) || DEFAULT_LOGO);
+        handlePrint(nextName, approver, notes, window.localStorage.getItem(LOGO_KEY) || DEFAULT_LOGO);
         return;
       }
 
       const reader = new FileReader();
-      reader.onload = async () => {
+      reader.onload = () => {
         const logoDataUrl = typeof reader.result === 'string' ? reader.result : DEFAULT_LOGO;
-        await saveDirectPdf(nextName, approver, notes, logoDataUrl);
+        handlePrint(nextName, approver, notes, logoDataUrl);
       };
       reader.readAsDataURL(file);
     });
@@ -182,9 +126,9 @@ export default function ExportPdfButton() {
       type="button"
       className="export-pdf-btn"
       onClick={handleExport}
-      title={`Simpan PDF - ${companyName}`}
+      title={`Cetak / Simpan PDF - ${companyName}`}
     >
-      Simpan PDF
+      Cetak / Simpan PDF
     </button>
   );
 }
