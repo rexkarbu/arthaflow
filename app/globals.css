@@ -143,13 +143,19 @@ body {
 
 /* ── PRINT REPORT BRANDING ── */
 .print-report-export-root {
-  position: absolute;
+  position: fixed;
   left: -9999px;
   top: 0;
   width: 210mm;
+  max-width: calc(100vw - 1rem);
+  min-height: 297mm;
   background: #ffffff;
   padding: 12mm;
   color: #111827;
+  box-sizing: border-box;
+  pointer-events: none;
+  visibility: hidden;
+  overflow: hidden;
 }
 
 .print-report-header,
