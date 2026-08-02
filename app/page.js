@@ -212,11 +212,11 @@ export default async function Home(props) {
         </div>
       </header>
 
-      <div className="print-report-export-root">
+      <div className="print-report-template">
         <div className="print-report-header">
           <div className="print-brand">
-            <img src="/arthaflow-brand.svg" alt="ArthaFlow" className="print-brand-logo-image" />
-            <div>
+            <img src="/arthaflow-brand.svg" alt="ArthaFlow official brand" className="print-brand-logo-image" />
+            <div className="print-brand-body">
               <div className="print-brand-title">Laporan Keuangan Bulanan</div>
               <div className="print-company-name">ArthaFlow</div>
               <div className="print-brand-subtitle">Periode: {monthLabel}</div>
