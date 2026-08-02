@@ -299,8 +299,9 @@ export default async function Home(props) {
                     .sort(([,a],[,b]) => b - a)
                     .map(([cat, amt]) => {
                       const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
+                      const categorySlug = encodeURIComponent(cat);
                       return (
-                        <div key={cat} className="stat-item">
+                        <a key={cat} className="stat-item stat-link" href={`/kategori/${categorySlug}`}>
                           <div className="stat-top">
                             <div className={`stat-name icon-${cat}`}>
                               <CategoryIcon category={cat} size={13} />
@@ -311,7 +312,7 @@ export default async function Home(props) {
                           <div className="bar-track">
                             <div className={`bar-fill fill-${cat}`} style={{ width: `${pct}%` }} />
                           </div>
-                        </div>
+                        </a>
                       );
                     })}
                 </div>

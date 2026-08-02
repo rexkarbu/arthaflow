@@ -362,6 +362,94 @@ option {
 .icon-Belanja      { color: var(--cat-4); }
 .icon-Lainnya      { color: var(--cat-5); }
 
+/* ── DETAIL CATEGORY PAGE ── */
+.detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detail-hero {
+  margin-bottom: 0.25rem;
+}
+
+.detail-hero-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.detail-label {
+  font-size: 0.66rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.25rem;
+}
+
+.detail-amount {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 1rem;
+}
+
+.trend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.trend-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.trend-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-sub);
+}
+
+.trend-meta strong {
+  color: var(--text);
+}
+
+.back-link {
+  color: var(--text-sub);
+  text-decoration: none;
+  font-size: 0.78rem;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+.detail-list-wrap .filter-bar,
+.detail-list-wrap .list-head,
+.detail-list-wrap .expense-list {
+  width: 100%;
+}
+
+.stat-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.stat-link:hover {
+  background: var(--bg-hover);
+}
+
 /* ── LIST ── */
 .list-head {
   display: flex;
