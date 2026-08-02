@@ -126,9 +126,9 @@ export default function ExportPdfButton() {
       type="button"
       className="export-pdf-btn"
       onClick={handleExport}
-      title={`Simpan PDF - ${companyName}`}
+      title={`Cetak / Simpan PDF - ${companyName}`}
     >
-      Simpan PDF
+      Cetak / Simpan PDF
     </button>
   );
 }
