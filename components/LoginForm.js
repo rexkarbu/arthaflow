@@ -94,8 +94,8 @@ export default function LoginForm() {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8rem' }}>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
             style={{ background: 'none', border: 'none', color: 'var(--text-dim)', textDecoration: 'underline', cursor: 'pointer' }}
           >

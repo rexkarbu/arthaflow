@@ -61,7 +61,10 @@ body {
   width: 100%;
   max-width: 380px;
   padding: 2.5rem 2rem;
-  border-top: 4px solid var(--cyan);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 
 /* ── HEADER ── */
@@ -95,8 +98,8 @@ body {
 .total-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--cyan);
-  padding: 1.5rem 2rem;
+  border-radius: 10px;
+  padding: 1.5rem;
   overflow: hidden;
   min-width: 0;
   margin-bottom: 2rem;
@@ -146,6 +149,7 @@ body {
 .card {
   background: var(--bg-card);
   border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
 .card-head {
@@ -179,11 +183,12 @@ body {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 0.75rem 1rem;
-  font-family: 'Outfit', sans-serif;
+  padding: 0.6rem 0.8rem;
+  font-family: 'Inter', sans-serif;
   font-size: 0.95rem;
+  border-radius: 6px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .input:focus { border-color: var(--cyan); }
@@ -199,12 +204,11 @@ option {
   background: var(--cyan);
   color: var(--bg);
   border: none;
-  padding: 0.85rem;
-  font-family: 'Outfit', sans-serif;
+  padding: 0.75rem;
+  font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
+  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
   margin-top: 0.5rem;
   transition: opacity 0.2s;
@@ -268,19 +272,16 @@ option {
 .expense-item {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--border);
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.expense-item:hover { border-left-color: var(--cyan); }
-
-.expense-item.c-Makanan      { border-left-color: var(--cat-food); }
-.expense-item.c-Transportasi { border-left-color: var(--cat-transport); }
-.expense-item.c-Hiburan      { border-left-color: var(--cat-hiburan); }
-.expense-item.c-Belanja      { border-left-color: var(--cat-belanja); }
-.expense-item.c-Lainnya      { border-left-color: var(--cat-other); }
+.expense-item:hover { 
+  border-color: var(--text-dim); 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
 .expense-icon {
   width: 44px;
