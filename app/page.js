@@ -198,7 +198,7 @@ export default async function Home(props) {
         </div>
         <div className="site-header-right">
           <MonthPicker currentMonth={selectedMonth} />
-          <ExportPdfButton companyName="ArthaFlow" />
+          <ExportPdfButton />
           <ThemeToggle />
           <LogoutButton />
         </div>
@@ -209,16 +209,17 @@ export default async function Home(props) {
           <img src="/arthaflow-brand.svg" alt="ArthaFlow" className="print-brand-logo-image" />
           <div>
             <div className="print-brand-title">Laporan Keuangan Bulanan</div>
-            <div className="print-brand-subtitle">ArthaFlow • {monthLabel}</div>
+            <div className="print-company-name">ArthaFlow</div>
+            <div className="print-brand-subtitle">Periode: {monthLabel}</div>
           </div>
         </div>
         <div className="print-report-meta">
           <div>
-            <span>Periode</span>
+            <span>Filter Bulan</span>
             <strong>{monthLabel}</strong>
           </div>
           <div>
-            <span>Dicetak</span>
+            <span>Tanggal Cetak</span>
             <strong>{printReportDate}</strong>
           </div>
         </div>

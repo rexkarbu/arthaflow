@@ -237,6 +237,15 @@ body {
     color: #111827;
   }
 
+  .print-company-name {
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #111827;
+  }
+
   .print-brand-subtitle {
     font-size: 0.72rem;
     color: #4b5563;
