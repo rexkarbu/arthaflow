@@ -1,35 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500&display=swap');
 
 :root {
-  --bg:       #04101f;
-  --bg-card:  #0a1a2e;
-  --border:   #1a3050;
-  --cyan:     #00bcd4;
-  --cyan-dim: rgba(0,188,212,0.1);
-  --text:     #c8dcea;
-  --text-dim: #5a7a90;
-  --danger:   #e03545;
-  --cat-food: #e07840;
-  --cat-transport: #4098c8;
-  --cat-hiburan: #9058d0;
-  --cat-belanja: #c8a030;
-  --cat-other: #507890;
+  --bg:       #000000;
+  --bg-card:  #0d0d0d;
+  --border:   #2b2b2b;
+  --cyan:     #ffffff;
+  --cyan-dim: rgba(255,255,255,0.1);
+  --text:     #ededed;
+  --text-dim: #888888;
+  --danger:   #ef4444;
+  --cat-food: #f59e0b;
+  --cat-transport: #3b82f6; /* keeping standard distinct colors for charts, but slightly muted */
+  --cat-hiburan: #8b5cf6;
+  --cat-belanja: #10b981;
+  --cat-other: #6b7280;
 }
 
 [data-theme='light'] {
-  --bg:       #f0f4f8;
-  --bg-card:  #ffffff;
-  --border:   #c8d8e8;
-  --cyan:     #0090a8;
-  --cyan-dim: rgba(0,144,168,0.1);
-  --text:     #1a2a3a;
-  --text-dim: #6080a0;
-  --danger:   #d02030;
-  --cat-food: #c85820;
-  --cat-transport: #2070a8;
-  --cat-hiburan: #7038b0;
-  --cat-belanja: #a07810;
-  --cat-other: #38607a;
+  --bg:       #ffffff;
+  --bg-card:  #f9f9f9;
+  --border:   #e5e5e5;
+  --cyan:     #000000;
+  --cyan-dim: rgba(0,0,0,0.05);
+  --text:     #171717;
+  --text-dim: #737373;
+  --danger:   #dc2626;
+  --cat-food: #d97706;
+  --cat-transport: #2563eb;
+  --cat-hiburan: #7c3aed;
+  --cat-belanja: #059669;
+  --cat-other: #4b5563;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -197,7 +197,7 @@ option {
 .btn-submit {
   width: 100%;
   background: var(--cyan);
-  color: #04101f;
+  color: var(--bg);
   border: none;
   padding: 0.85rem;
   font-family: 'Outfit', sans-serif;
