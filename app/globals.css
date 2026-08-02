@@ -141,6 +141,101 @@ body {
   margin-top: 2px;
 }
 
+/* ── PDF EXPORT BUTTON ── */
+.export-pdf-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-sub);
+  padding: 0.4rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+  margin-right: 0.5rem;
+  transition: all 0.15s;
+}
+
+.export-pdf-btn:hover {
+  border-color: var(--text-sub);
+  color: var(--text);
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .site-header-right > *:not(.export-pdf-btn),
+  .filter-bar,
+  .card form,
+  .btn-del,
+  .budget-edit-btn,
+  .search-clear,
+  .expense-right,
+  .ExpenseForm,
+  .ExpenseChart,
+  .TrendChart,
+  .FinancialGoals,
+  .LoginForm,
+  .LogoutButton,
+  .ThemeToggle,
+  .MonthPicker {
+    display: none !important;
+  }
+
+  .wrap {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .total-card,
+  .card,
+  .budget-bar,
+  .expense-item {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #d1d5db !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .site-title,
+  .site-badge,
+  .total-label,
+  .total-amount,
+  .card-head,
+  .report-label,
+  .report-value,
+  .detail-label,
+  .detail-amount,
+  .expense-desc,
+  .expense-meta,
+  .expense-amount,
+  .budget-label,
+  .budget-status,
+  .budget-numbers,
+  .list-title,
+  .list-count,
+  .stat-name,
+  .stat-pct,
+  .trend-meta,
+  .report-period,
+  .report-pill,
+  .report-percent {
+    color: #111827 !important;
+  }
+
+  .bar-fill,
+  .budget-fill {
+    background: #2563eb !important;
+  }
+
+  .report-card,
+  .detail-page {
+    page-break-inside: avoid;
+  }
+}
+
 /* ── SUMMARY CARDS ── */
 .total-card {
   background: var(--bg-card);

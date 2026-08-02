@@ -12,6 +12,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import ExpenseForm from '@/components/ExpenseForm';
 import AnimatedNumber from '@/components/AnimatedNumber';
 import FinancialGoals from '@/components/FinancialGoals';
+import ExportPdfButton from '@/components/ExportPdfButton';
 import './globals.css';
 
 export const metadata = {
@@ -184,6 +185,7 @@ export default async function Home(props) {
         </div>
         <div className="site-header-right">
           <MonthPicker currentMonth={selectedMonth} />
+          <ExportPdfButton />
           <ThemeToggle />
           <LogoutButton />
         </div>
