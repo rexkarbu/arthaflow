@@ -45,6 +45,7 @@ export default async function Home(props) {
 
   const searchParams = await props.searchParams;
   const monthParam = searchParams?.month;
+  const isPrintMode = searchParams?.print === '1';
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -195,6 +196,119 @@ export default async function Home(props) {
       amountLabel: e.type === 'income' ? `+${formatRupiah(e.amount)}` : `-${formatRupiah(e.amount)}`
     }));
 
+  const reportTemplate = (
+    <div className="print-report-template">
+      <div className="print-report-header">
+        <div className="print-brand">
+          <img src="/arthaflow-brand.svg" alt="ArthaFlow official brand" className="print-brand-logo-image" />
+          <div className="print-brand-body">
+            <div className="print-brand-title">Laporan Keuangan Bulanan</div>
+            <div className="print-company-name">ArthaFlow</div>
+            <div className="print-brand-subtitle">Periode: {monthLabel}</div>
+          </div>
+        </div>
+        <div className="print-report-meta">
+          <div>
+            <span>Filter Bulan</span>
+            <strong>{monthLabel}</strong>
+          </div>
+          <div>
+            <span>Tanggal Cetak</span>
+            <strong>{printReportDate}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="print-report-summary">
+        <div className="print-summary-card">
+          <span>Pemasukan</span>
+          <strong>{formatRupiah(totalIncome)}</strong>
+        </div>
+        <div className="print-summary-card">
+          <span>Pengeluaran</span>
+          <strong>{formatRupiah(totalExpense)}</strong>
+        </div>
+        <div className="print-summary-card">
+          <span>Saldo</span>
+          <strong>{formatRupiah(balance)}</strong>
+        </div>
+      </div>
+
+      <div className="print-report-table">
+        <div className="print-section-title">Ringkasan Kategori</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Kategori</th>
+              <th>Jumlah</th>
+              <th>Persentase</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printCategoryRows.map(row => (
+              <tr key={row.category}>
+                <td>{row.category}</td>
+                <td>{formatRupiah(row.amount)}</td>
+                <td>{row.pct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="print-report-detail">
+        <div className="print-section-title">Detail Transaksi Per Bulan</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Kategori</th>
+              <th>Deskripsi</th>
+              <th>Jenis</th>
+              <th>Jumlah</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printTransactionRows.map(row => (
+              <tr key={`${row.id}-${row.date}`}>
+                <td>{new Date(row.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                <td>{row.category || 'Lainnya'}</td>
+                <td>{row.description || 'Tanpa deskripsi'}</td>
+                <td>{row.typeLabel}</td>
+                <td>{row.amountLabel}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="print-report-footer">
+        <div className="print-footer-grid">
+          <div>
+            <span>Disetujui oleh</span>
+            <strong className="print-approved-by-value">Manajer Keuangan</strong>
+          </div>
+          <div>
+            <span>Dibuat pada</span>
+            <strong>{printReportDate}</strong>
+          </div>
+        </div>
+        <div className="print-footer-notes">
+          <span>Catatan</span>
+          <div className="print-notes-value">Laporan disiapkan untuk keperluan audit internal dan arsip akuntansi.</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isPrintMode) {
+    return (
+      <div className="wrap">
+        {reportTemplate}
+      </div>
+    );
+  }
+
   return (
     <div className="wrap">
 
@@ -211,109 +325,6 @@ export default async function Home(props) {
           <LogoutButton />
         </div>
       </header>
-
-      <div className="print-report-template">
-        <div className="print-report-header">
-          <div className="print-brand">
-            <img src="/arthaflow-brand.svg" alt="ArthaFlow official brand" className="print-brand-logo-image" />
-            <div className="print-brand-body">
-              <div className="print-brand-title">Laporan Keuangan Bulanan</div>
-              <div className="print-company-name">ArthaFlow</div>
-              <div className="print-brand-subtitle">Periode: {monthLabel}</div>
-            </div>
-          </div>
-          <div className="print-report-meta">
-            <div>
-              <span>Filter Bulan</span>
-              <strong>{monthLabel}</strong>
-            </div>
-            <div>
-              <span>Tanggal Cetak</span>
-              <strong>{printReportDate}</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="print-report-summary">
-          <div className="print-summary-card">
-            <span>Pemasukan</span>
-            <strong>{formatRupiah(totalIncome)}</strong>
-          </div>
-          <div className="print-summary-card">
-            <span>Pengeluaran</span>
-            <strong>{formatRupiah(totalExpense)}</strong>
-          </div>
-          <div className="print-summary-card">
-            <span>Saldo</span>
-            <strong>{formatRupiah(balance)}</strong>
-          </div>
-        </div>
-
-        <div className="print-report-table">
-          <div className="print-section-title">Ringkasan Kategori</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Kategori</th>
-                <th>Jumlah</th>
-                <th>Persentase</th>
-              </tr>
-            </thead>
-            <tbody>
-              {printCategoryRows.map(row => (
-                <tr key={row.category}>
-                  <td>{row.category}</td>
-                  <td>{formatRupiah(row.amount)}</td>
-                  <td>{row.pct}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="print-report-detail">
-          <div className="print-section-title">Detail Transaksi Per Bulan</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Kategori</th>
-                <th>Deskripsi</th>
-                <th>Jenis</th>
-                <th>Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              {printTransactionRows.map(row => (
-                <tr key={`${row.id}-${row.date}`}>
-                  <td>{new Date(row.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                  <td>{row.category || 'Lainnya'}</td>
-                  <td>{row.description || 'Tanpa deskripsi'}</td>
-                  <td>{row.typeLabel}</td>
-                  <td>{row.amountLabel}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="print-report-footer">
-          <div className="print-footer-grid">
-            <div>
-              <span>Disetujui oleh</span>
-              <strong className="print-approved-by-value">Manajer Keuangan</strong>
-            </div>
-            <div>
-              <span>Dibuat pada</span>
-              <strong>{printReportDate}</strong>
-            </div>
-          </div>
-          <div className="print-footer-notes">
-            <span>Catatan</span>
-            <div className="print-notes-value">Laporan disiapkan untuk keperluan audit internal dan arsip akuntansi.</div>
-          </div>
-        </div>
-      </div>
 
       {/* Ringkasan */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>

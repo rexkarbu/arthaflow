@@ -11,6 +11,7 @@ const DEFAULT_LOGO = '/arthaflow-brand.svg';
 
 export default function ExportPdfButton() {
   const [companyName, setCompanyName] = useState('ArthaFlow');
+  const [isPrintActive, setIsPrintActive] = useState(false);
 
   useEffect(() => {
     const storedName = window.localStorage.getItem(COMPANY_KEY);
@@ -79,8 +80,12 @@ export default function ExportPdfButton() {
     }
 
     setCompanyName(nextName);
+    setIsPrintActive(true);
     updatePrintMetadata(nextName, approver, notes, logoUrl || DEFAULT_LOGO);
-    window.print();
+
+    requestAnimationFrame(() => {
+      window.print();
+    });
   }
 
   function handleExport() {
@@ -89,17 +94,45 @@ export default function ExportPdfButton() {
     const storedNotes = window.localStorage.getItem(NOTES_KEY) || 'Laporan disiapkan untuk keperluan audit internal dan arsip akuntansi.';
     const storedLogo = window.localStorage.getItem(LOGO_KEY) || DEFAULT_LOGO;
 
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('print', '1');
+
+    const printWindow = window.open(currentUrl.toString(), '_blank', 'noopener,noreferrer');
+    if (printWindow) {
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch {
+          handlePrint(storedName, storedApprover, storedNotes, storedLogo);
+        }
+      }, 500);
+      return;
+    }
+
     handlePrint(storedName, storedApprover, storedNotes, storedLogo);
   }
 
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPrintActive(false);
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
   return (
-    <button
-      type="button"
-      className="export-pdf-btn"
-      onClick={handleExport}
-      title={`Simpan PDF - ${companyName}`}
-    >
-      Simpan PDF
-    </button>
+    <>
+      <button
+        type="button"
+        className="export-pdf-btn"
+        onClick={handleExport}
+        title={`Simpan PDF - ${companyName}`}
+      >
+        Simpan PDF
+      </button>
+      {isPrintActive && <div className="print-preview-activation" aria-hidden="true" />}
+    </>
   );
 }

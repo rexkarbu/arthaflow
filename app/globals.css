@@ -143,6 +143,7 @@ body {
 
 /* ── PRINT REPORT BRANDING ── */
 .print-report-template {
+  display: none;
   background: #ffffff;
   color: #111827;
   width: 100%;
@@ -150,6 +151,10 @@ body {
   margin: 0 auto;
   padding: 12mm;
   box-sizing: border-box;
+}
+
+.print-preview-activation {
+  display: block;
 }
 
 .print-report-header,
@@ -224,6 +229,7 @@ body {
   }
 
   .print-report-template {
+    display: block !important;
     max-width: none !important;
     padding: 0 !important;
     background: transparent !important;
@@ -339,6 +345,7 @@ body {
   .print-report-table,
   .print-report-detail {
     width: 100%;
+    max-width: 100%;
     border: 1px solid #d1d5db;
     border-collapse: collapse;
     table-layout: fixed;
@@ -347,18 +354,44 @@ body {
     break-inside: avoid;
   }
 
+  .print-report-table table,
+  .print-report-detail table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
   .print-report-table th,
   .print-report-table td,
   .print-report-detail th,
   .print-report-detail td {
     border: 1px solid #d1d5db;
-    padding: 0.6rem 0.7rem;
+    padding: 0.4rem 0.45rem;
     text-align: left;
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     color: #111827;
     vertical-align: top;
     word-break: break-word;
+    overflow-wrap: anywhere;
   }
+
+  .print-report-table th:nth-child(1),
+  .print-report-table td:nth-child(1) { width: 46%; }
+  .print-report-table th:nth-child(2),
+  .print-report-table td:nth-child(2) { width: 30%; }
+  .print-report-table th:nth-child(3),
+  .print-report-table td:nth-child(3) { width: 24%; }
+
+  .print-report-detail th:nth-child(1),
+  .print-report-detail td:nth-child(1) { width: 16%; }
+  .print-report-detail th:nth-child(2),
+  .print-report-detail td:nth-child(2) { width: 20%; }
+  .print-report-detail th:nth-child(3),
+  .print-report-detail td:nth-child(3) { width: 34%; }
+  .print-report-detail th:nth-child(4),
+  .print-report-detail td:nth-child(4) { width: 12%; }
+  .print-report-detail th:nth-child(5),
+  .print-report-detail td:nth-child(5) { width: 18%; }
 
   .print-report-detail td:nth-child(5),
   .print-report-table td:nth-child(2) {
