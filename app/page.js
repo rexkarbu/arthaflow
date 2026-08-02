@@ -187,6 +187,14 @@ export default async function Home(props) {
       pct: totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0
     }));
 
+  const printTransactionRows = [...expenses]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map(e => ({
+      ...e,
+      typeLabel: e.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
+      amountLabel: e.type === 'income' ? `+${formatRupiah(e.amount)}` : `-${formatRupiah(e.amount)}`
+    }));
+
   return (
     <div className="wrap">
 
@@ -241,6 +249,7 @@ export default async function Home(props) {
       </div>
 
       <div className="print-report-table">
+        <div className="print-section-title">Ringkasan Kategori</div>
         <table>
           <thead>
             <tr>
@@ -259,6 +268,49 @@ export default async function Home(props) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="print-report-detail">
+        <div className="print-section-title">Detail Transaksi Per Bulan</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Kategori</th>
+              <th>Deskripsi</th>
+              <th>Jenis</th>
+              <th>Jumlah</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printTransactionRows.map(row => (
+              <tr key={`${row.id}-${row.date}`}>
+                <td>{new Date(row.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                <td>{row.category || 'Lainnya'}</td>
+                <td>{row.description || 'Tanpa deskripsi'}</td>
+                <td>{row.typeLabel}</td>
+                <td>{row.amountLabel}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="print-report-footer">
+        <div className="print-footer-grid">
+          <div>
+            <span>Disetujui oleh</span>
+            <strong className="print-approved-by-value">Manajer Keuangan</strong>
+          </div>
+          <div>
+            <span>Dibuat pada</span>
+            <strong>{printReportDate}</strong>
+          </div>
+        </div>
+        <div className="print-footer-notes">
+          <span>Catatan</span>
+          <div className="print-notes-value">Laporan disiapkan untuk keperluan audit internal dan arsip akuntansi.</div>
+        </div>
       </div>
 
       {/* Ringkasan */}
