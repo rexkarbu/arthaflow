@@ -97,6 +97,8 @@ body {
   border: 1px solid var(--border);
   border-left: 4px solid var(--cyan);
   padding: 1.5rem 2rem;
+  overflow: hidden;
+  min-width: 0;
   margin-bottom: 2rem;
   display: flex;
   align-items: center;
@@ -114,11 +116,12 @@ body {
 }
 
 .total-amount {
-  font-size: 2.2rem;
+  font-size: clamp(1rem, 3.5vw, 2.2rem);
   font-weight: 700;
   color: var(--text);
   word-break: break-all;
   overflow-wrap: break-word;
+  line-height: 1.2;
 }
 
 .total-amount span { color: var(--cyan); font-size: 70%; margin-right: 4px; }
@@ -316,13 +319,17 @@ option {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   flex-shrink: 0;
+  max-width: 50%;
+  min-width: 0;
 }
 
 .expense-amount {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text);
-  white-space: nowrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  text-align: right;
 }
 
 .btn-del {
