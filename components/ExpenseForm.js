@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { addExpense, addCategory } from '@/app/actions';
+import { toast } from 'sonner';
 
 export default function ExpenseForm({ expenseCategories = [], incomeCategories = [] }) {
   const [type, setType] = useState('expense'); // 'expense' | 'income'
@@ -20,6 +21,7 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
     const MAX_AMOUNT = 999_999_999_999; // 999 miliar
     const amount = parseFloat(fd.get('amount'));
     if (amount > MAX_AMOUNT) {
+      toast.error('Jumlah maksimal adalah Rp 999.999.999.999');
       setAmountError('Jumlah maksimal adalah Rp 999.999.999.999');
       setLoading(false);
       return;
@@ -40,10 +42,16 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
       }
     }
 
-    await addExpense(fd);
-    form.reset();
-    setShowNewCat(false);
-    setLoading(false);
+    try {
+      await addExpense(fd);
+      form.reset();
+      setShowNewCat(false);
+      toast.success(type === 'expense' ? 'Pengeluaran berhasil dicatat!' : 'Pemasukan berhasil dicatat!');
+    } catch (err) {
+      toast.error('Gagal menyimpan data.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const activeCategories = type === 'expense' ? expenseCategories : incomeCategories;

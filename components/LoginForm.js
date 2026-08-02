@@ -4,28 +4,25 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, register } from '@/app/actions';
 import { Lock, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LoginForm() {
   const [isRegister, setIsRegister] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setSuccess('');
 
     const fd = new FormData(e.currentTarget);
 
     if (isRegister) {
       const res = await register(fd);
       if (res?.error) {
-        setError(res.error);
+        toast.error(res.error);
       } else {
-        setSuccess(res.message || 'Akun berhasil dibuat. Silakan login.');
+        toast.success(res.message || 'Akun berhasil dibuat. Silakan login.');
         setIsRegister(false);
         e.currentTarget.reset();
       }
@@ -33,9 +30,10 @@ export default function LoginForm() {
     } else {
       const res = await login(fd);
       if (res?.error) {
-        setError(res.error);
+        toast.error(res.error);
         setLoading(false);
       } else {
+        toast.success('Login berhasil!');
         router.push('/');
         router.refresh();
       }
@@ -77,17 +75,6 @@ export default function LoginForm() {
             />
           </div>
 
-          {error && (
-            <div style={{ color: 'var(--danger)', fontSize: '0.8rem', textAlign: 'center', marginBottom: '1rem' }}>
-              {error}
-            </div>
-          )}
-          {success && (
-            <div style={{ color: 'var(--cyan)', fontSize: '0.8rem', textAlign: 'center', marginBottom: '1rem' }}>
-              {success}
-            </div>
-          )}
-
           <button type="submit" className="btn-submit" disabled={loading}>
             {loading ? 'Memeriksa...' : (isRegister ? 'Daftar' : 'Masuk')}
           </button>
@@ -96,7 +83,7 @@ export default function LoginForm() {
         <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8rem' }}>
           <button
             type="button"
-            onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
+            onClick={() => setIsRegister(!isRegister)}
             style={{ background: 'none', border: 'none', color: 'var(--text-dim)', textDecoration: 'underline', cursor: 'pointer' }}
           >
             {isRegister ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Buat baru'}

@@ -1,5 +1,6 @@
 import './globals.css';
 import Providers from '@/components/Providers';
+import { Toaster } from 'sonner';
 
 export const metadata = {
   title: 'ArthaFlow',
@@ -18,7 +19,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id" suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster theme="system" position="top-center" richColors closeButton />
+        </Providers>
       </body>
     </html>
   );
