@@ -300,6 +300,7 @@ body {
     border: 1px solid #d1d5db;
     background: #f9fafb;
     padding: 0.8rem 0.9rem;
+    min-height: 4.3rem;
   }
 
   .print-summary-card span {
@@ -312,8 +313,11 @@ body {
   }
 
   .print-summary-card strong {
-    font-size: 0.95rem;
+    font-size: 1rem;
+    font-weight: 800;
     color: #111827;
+    display: block;
+    white-space: nowrap;
   }
 
   .print-report-table,
@@ -321,6 +325,7 @@ body {
     width: 100%;
     border: 1px solid #d1d5db;
     border-collapse: collapse;
+    table-layout: fixed;
     page-break-inside: avoid;
     margin-bottom: 1rem;
   }
@@ -335,6 +340,14 @@ body {
     font-size: 0.76rem;
     color: #111827;
     vertical-align: top;
+    word-break: break-word;
+  }
+
+  .print-report-detail td:nth-child(5),
+  .print-report-table td:nth-child(2) {
+    white-space: nowrap;
+    font-weight: 700;
+    color: #0f172a;
   }
 
   .print-report-table th,
