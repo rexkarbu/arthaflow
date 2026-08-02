@@ -142,12 +142,22 @@ body {
 }
 
 /* ── PRINT REPORT BRANDING ── */
+.print-report-export-root {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 210mm;
+  background: #ffffff;
+  padding: 12mm;
+  color: #111827;
+}
+
 .print-report-header,
 .print-report-summary,
 .print-report-table,
 .print-report-detail,
 .print-report-footer {
-  display: none;
+  display: block;
 }
 
 /* ── PDF EXPORT BUTTON ── */
