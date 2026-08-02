@@ -239,6 +239,14 @@ body {
     gap: 1rem;
   }
 
+  .print-report-header,
+  .print-report-summary,
+  .print-report-table,
+  .print-report-detail,
+  .print-report-footer {
+    width: 100%;
+  }
+
   .print-brand {
     display: flex;
     align-items: center;
@@ -328,6 +336,7 @@ body {
     table-layout: fixed;
     page-break-inside: avoid;
     margin-bottom: 1rem;
+    break-inside: avoid;
   }
 
   .print-report-table th,
