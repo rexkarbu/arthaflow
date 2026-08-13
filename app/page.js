@@ -26,6 +26,20 @@ function formatRupiah(n) {
   }).format(n);
 }
 
+function formatWIB(isoString) {
+  const d = new Date(isoString);
+  d.setUTCHours(d.getUTCHours() + 7); // UTC+7 WIB
+  
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const day = d.getUTCDate();
+  const month = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const hours = String(d.getUTCHours()).padStart(2, '0');
+  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+  
+  return `${day} ${month} ${year}, ${hours}:${minutes}`;
+}
+
 function CategoryIcon({ category, size = 16 }) {
   const props = { size };
   switch (category) {
@@ -85,7 +99,7 @@ export default async function Home(props) {
     .filter(e => e.date.startsWith(selectedMonth))
     .map(e => ({
       ...e,
-      dateStr: new Date(e.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':')
+      dateStr: formatWIB(e.date)
     }));
 
   const reportExpenses = rawExpenses.filter(e => e.date.startsWith(reportMonth));
