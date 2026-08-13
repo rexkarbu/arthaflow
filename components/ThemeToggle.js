@@ -9,7 +9,10 @@ export default function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   // Avoid hydration mismatch: only render icon after mounted client-side
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
   if (!mounted) return <div style={{ width: '32px', height: '28px' }} />;
 
   const isDark = theme === 'dark';

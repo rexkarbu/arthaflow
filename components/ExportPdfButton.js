@@ -20,6 +20,7 @@ export default function ExportPdfButton() {
     const storedNotes = window.localStorage.getItem(NOTES_KEY);
 
     if (storedName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCompanyName(storedName);
     }
 
