@@ -1,6 +1,6 @@
 'use server';
 
-import db from '@/lib/db';
+import db, { dbReady } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
@@ -136,6 +136,7 @@ export async function logout() {
 // --- CRUD OPERATIONS ---
 
 export async function getExpenses() {
+  await dbReady;
   const userId = await getAuthSession();
   if (!userId) return [];
   const res = await db.execute({
@@ -250,6 +251,7 @@ export async function seedRecurringExpenses(targetMonth) {
 }
 
 export async function getBudget(month) {
+  await dbReady;
   const userId = await getAuthSession();
   if (!userId) return null;
 
@@ -287,6 +289,7 @@ export async function setBudget(formData) {
 // --- GOALS ---
 
 export async function getGoals() {
+  await dbReady;
   const userId = await getAuthSession();
   if (!userId) return [];
   const result = await db.execute({
@@ -331,6 +334,7 @@ export async function deleteGoal(id) {
 // --- CATEGORIES ---
 
 export async function getCategories(type = 'expense') {
+  await dbReady;
   const userId = await getAuthSession();
   if (!userId) return [];
 
