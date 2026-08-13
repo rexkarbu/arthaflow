@@ -85,7 +85,7 @@ export default async function Home(props) {
     .filter(e => e.date.startsWith(selectedMonth))
     .map(e => ({
       ...e,
-      dateStr: new Date(e.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+      dateStr: new Date(e.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':')
     }));
 
   const reportExpenses = rawExpenses.filter(e => e.date.startsWith(reportMonth));
@@ -98,6 +98,14 @@ export default async function Home(props) {
   const previousExpense = compareExpenses.reduce((sum, e) => e.type === 'income' ? sum : sum + e.amount, 0);
   const expenseDiff = reportExpense - previousExpense;
   const expenseDiffPct = previousExpense > 0 ? Math.round((expenseDiff / previousExpense) * 100) : 0;
+  const budgetAmount = budget?.amount || 0;
+  const budgetUsagePct = budgetAmount > 0 ? Math.round((monthSpent / budgetAmount) * 100) : 0;
+  const budgetStatusLabel = budgetUsagePct > 100
+    ? 'Over Budget'
+    : budgetUsagePct >= 80
+      ? 'Mendekati Batas'
+      : 'Dalam Batas';
+  const avgExpensePerTransaction = expenses.length > 0 ? Math.round(monthSpent / expenses.length) : 0;
 
   const reportByCategory = reportExpenses.reduce((acc, e) => {
     if (e.type === 'income') return acc;
@@ -234,6 +242,47 @@ export default async function Home(props) {
         </div>
       </div>
 
+      <div className="print-report-context">
+        <div className="print-report-context-card">
+          <span>Kategori Terboros</span>
+          <strong>{topReportCategory ? topReportCategory[0] : 'Belum ada data'}</strong>
+          <small>{topReportCategory ? formatRupiah(topReportCategory[1]) : '-'}</small>
+        </div>
+        <div className="print-report-context-card">
+          <span>Persentase Hemat</span>
+          <strong>{Math.abs(savingPct)}%</strong>
+          <small>{savingTrendLabel}</small>
+        </div>
+        <div className="print-report-context-card">
+          <span>Perbandingan Bulan Lalu</span>
+          <strong>{spendingTrendLabel}</strong>
+          <small>{compareMonthLabel}</small>
+        </div>
+      </div>
+
+      <div className="print-report-extra">
+        <div className="print-report-extra-card">
+          <span>Jumlah Transaksi</span>
+          <strong>{expenses.length}</strong>
+          <small>Seluruh entri bulan {monthLabel}</small>
+        </div>
+        <div className="print-report-extra-card">
+          <span>Rata-rata Pengeluaran</span>
+          <strong>{formatRupiah(avgExpensePerTransaction)}</strong>
+          <small>Per transaksi</small>
+        </div>
+        <div className="print-report-extra-card">
+          <span>Budget Terpakai</span>
+          <strong>{budgetUsagePct}%</strong>
+          <small>{formatRupiah(monthSpent)} dari {formatRupiah(budgetAmount)}</small>
+        </div>
+        <div className="print-report-extra-card">
+          <span>Status Budget</span>
+          <strong>{budgetStatusLabel}</strong>
+          <small>{budgetUsagePct > 100 ? 'Melebihi target' : 'Pencapaian anggaran berjalan'}</small>
+        </div>
+      </div>
+
       <div className="print-report-table">
         <div className="print-section-title">Ringkasan Kategori</div>
         <table>
@@ -291,6 +340,10 @@ export default async function Home(props) {
           <div>
             <span>Dibuat pada</span>
             <strong>{printReportDate}</strong>
+          </div>
+          <div>
+            <span>Periode Laporan</span>
+            <strong>{monthLabel}</strong>
           </div>
         </div>
         <div className="print-footer-notes">
