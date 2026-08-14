@@ -40,6 +40,11 @@ function formatWIB(isoString) {
   return `${day} ${month} ${year}, ${hours}:${minutes}`;
 }
 
+function formatMonthLabel(dateObj) {
+  const longMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  return `${longMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+}
+
 function CategoryIcon({ category, size = 16 }) {
   const props = { size };
   switch (category) {
@@ -84,15 +89,15 @@ export default async function Home(props) {
   
   const [year, month] = selectedMonth.split('-');
   const dateObj = new Date(parseInt(year), parseInt(month) - 1);
-  const monthLabel = dateObj.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+  const monthLabel = formatMonthLabel(dateObj);
 
   const reportDate = new Date(parseInt(year), parseInt(month) - 2, 1);
   const reportMonth = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
-  const reportMonthLabel = reportDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+  const reportMonthLabel = formatMonthLabel(reportDate);
 
   const compareDate = new Date(parseInt(year), parseInt(month) - 3, 1);
   const compareMonth = `${compareDate.getFullYear()}-${String(compareDate.getMonth() + 1).padStart(2, '0')}`;
-  const compareMonthLabel = compareDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+  const compareMonthLabel = formatMonthLabel(compareDate);
 
   // Filter raw expenses by selected month
   const expenses = rawExpenses
@@ -112,7 +117,24 @@ export default async function Home(props) {
   const previousExpense = compareExpenses.reduce((sum, e) => e.type === 'income' ? sum : sum + e.amount, 0);
   const expenseDiff = reportExpense - previousExpense;
   const expenseDiffPct = previousExpense > 0 ? Math.round((expenseDiff / previousExpense) * 100) : 0;
-  const budgetAmount = budget?.amount || 0;
+
+  // Budget — must be fetched before budgetAmount/monthSpent are used below
+  const budget = await getBudget(selectedMonth);
+
+  // Hitung total keseluruhan berdasarkan filter
+  let totalIncome = 0;
+  let totalExpense = 0;
+  expenses.forEach(e => {
+    if (e.type === 'income') {
+      totalIncome += e.amount;
+    } else {
+      totalExpense += e.amount;
+    }
+  });
+  const balance = totalIncome - totalExpense;
+  const monthSpent = totalExpense;
+
+  const budgetAmount = budget || 0;
   const budgetUsagePct = budgetAmount > 0 ? Math.round((monthSpent / budgetAmount) * 100) : 0;
   const budgetStatusLabel = budgetUsagePct > 100
     ? 'Over Budget'
@@ -139,25 +161,7 @@ export default async function Home(props) {
       ? `Turun ${Math.abs(expenseDiffPct)}%`
       : 'Tetap sama';
 
-  // Budget
-  const budget = await getBudget(selectedMonth);
-
-  // Hitung total keseluruhan berdasarkan filter
-  let totalIncome = 0;
-  let totalExpense = 0;
-  
-  expenses.forEach(e => {
-    if (e.type === 'income') {
-      totalIncome += e.amount;
-    } else {
-      totalExpense += e.amount;
-    }
-  });
-
-  const balance = totalIncome - totalExpense;
-
-  // Hitung pengeluaran untuk budget bar
-  const monthSpent = totalExpense;
+  // Hitung pengeluaran untuk budget bar (already computed above)
 
   // Total khusus hari ini
   const todayStr = now.toISOString().slice(0, 10);
