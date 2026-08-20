@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react';
 import { setBudget } from '@/app/actions';
-import { AlertTriangle, CheckCircle, Edit2, X, Check } from 'lucide-react';
 
 function formatRupiah(n) {
   return new Intl.NumberFormat('id-ID', {
@@ -16,15 +15,15 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
   const [isPending, startTransition] = useTransition();
 
   const hasBudget = budget !== null;
-  const pct       = hasBudget ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
-  const sisa      = hasBudget ? budget - spent : 0;
+  const pct = hasBudget ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
+  const sisa = hasBudget ? budget - spent : 0;
   const isWarning = hasBudget && pct >= 75 && pct < 100;
-  const isDanger  = hasBudget && pct >= 100;
+  const isDanger = hasBudget && pct >= 100;
 
   async function formAction(fd) {
     const amount = parseFloat(fd.get('budget'));
     if (isNaN(amount) || amount <= 0) return;
-    
+
     startTransition(async () => {
       await setBudget(fd);
       setEditing(false);
@@ -32,7 +31,7 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
   }
 
   return (
-    <div className={`budget-bar ${isDanger ? 'budget-danger' : isWarning ? 'budget-warning' : ''}`}>
+    <div className="budget-section">
       <div className="budget-top">
         <div className="budget-label">Budget {monthLabel}</div>
         <button
@@ -40,11 +39,10 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
           className="budget-edit-btn"
           onClick={() => setEditing(prev => !prev)}
         >
-          {editing ? <><X size={13} /> Batal</> : <><Edit2 size={13} /> Set</>}
+          {editing ? 'Batal' : 'Set Budget'}
         </button>
       </div>
 
-      {/* Form edit budget */}
       {editing && (
         <form action={formAction} className="budget-form">
           <input type="hidden" name="month" value={month} />
@@ -60,25 +58,25 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
             autoFocus
           />
           <button type="submit" className="budget-save-btn" disabled={isPending}>
-            <Check size={14} /> {isPending ? 'Menyimpan...' : 'Simpan'}
+            {isPending ? 'Menyimpan...' : 'Simpan'}
           </button>
         </form>
       )}
 
       {hasBudget && !editing && (
         <>
-          <div className="budget-status">
+          <div className="budget-amounts">
             {isDanger ? (
               <span className="status-danger">
-                <AlertTriangle size={13} /> Melewati limit!
+                Melewati budget!
               </span>
             ) : isWarning ? (
               <span className="status-warning">
-                <AlertTriangle size={13} /> Mendekati limit ({pct}%)
+                Mendekati limit budget
               </span>
             ) : (
-              <span className="status-ok">
-                <CheckCircle size={13} /> Aman &mdash; {pct}% terpakai
+              <span>
+                <strong>{formatRupiah(spent)}</strong> digunakan dari <strong>{formatRupiah(budget)}</strong>
               </span>
             )}
           </div>
@@ -91,22 +89,21 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
           </div>
 
           <div className="budget-numbers">
-            <span>Terpakai: <strong>{formatRupiah(spent)}</strong></span>
+            <span>{pct}% terpakai</span>
             {isDanger ? (
-              <span style={{ color: 'var(--danger)' }}>
+              <span style={{ color: 'var(--expense)' }}>
                 Lebih {formatRupiah(Math.abs(sisa))}
               </span>
             ) : (
-              <span>Sisa: <strong>{formatRupiah(sisa)}</strong></span>
+              <span>Sisa {formatRupiah(sisa)}</span>
             )}
-            <span style={{ color: 'var(--text-dim)' }}>/ {formatRupiah(budget)}</span>
           </div>
         </>
       )}
 
       {!hasBudget && !editing && (
         <div className="budget-empty-hint">
-          Belum ada budget — klik <strong>Set</strong> untuk pasang limit bulan ini.
+          Belum ada budget untuk bulan ini.
         </div>
       )}
     </div>

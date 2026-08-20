@@ -1,21 +1,8 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
-import { Trash2, Search, X, Edit2, Check, Download, Utensils, Car, Gamepad2, ShoppingBag, Wallet, Receipt } from 'lucide-react';
+import { Trash2, Search, X, Edit2, Check, Download, Repeat } from 'lucide-react';
 import { deleteExpense, updateExpense } from '@/app/actions';
-
-function getCategoryIcon(cat, type) {
-  if (type === 'income') return <Wallet size={16} />;
-  switch(cat) {
-    case 'Makanan': return <Utensils size={16} />;
-    case 'Transportasi': return <Car size={16} />;
-    case 'Hiburan': return <Gamepad2 size={16} />;
-    case 'Belanja': return <ShoppingBag size={16} />;
-    default: return <Receipt size={16} />;
-  }
-}
-
-// Static categories removed, using dynamic categories
 
 function formatRupiah(n) {
   return new Intl.NumberFormat('id-ID', {
@@ -24,9 +11,9 @@ function formatRupiah(n) {
 }
 
 export default function ExpenseList({ expenses, expenseCategories = [], incomeCategories = [] }) {
-  const [query, setQuery]       = useState('');
+  const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState('Semua');
-  const [editId, setEditId]     = useState(null);
+  const [editId, setEditId] = useState(null);
   const [isPending, startTransition] = useTransition();
 
   const usedCategories = useMemo(() => {
@@ -36,14 +23,14 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
 
   const filtered = useMemo(() => {
     return expenses.filter(e => {
-      const matchCat  = activeCat === 'Semua' || e.category === activeCat;
+      const matchCat = activeCat === 'Semua' || e.category === activeCat;
       const matchText = e.description.toLowerCase().includes(query.toLowerCase());
       return matchCat && matchText;
     });
   }, [expenses, query, activeCat]);
 
   const filteredExpense = filtered.filter(e => e.type !== 'income').reduce((s, e) => s + e.amount, 0);
-  const filteredIncome  = filtered.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+  const filteredIncome = filtered.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
 
   function handleEditSubmit(fd) {
     startTransition(async () => {
@@ -54,7 +41,7 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
 
   function exportToCSV() {
     const headers = ['ID,Tanggal,Tipe,Kategori,Keterangan,Catatan,Jumlah (Rp)'];
-    const rows = filtered.map(e => 
+    const rows = filtered.map(e =>
       `${e.id},"${e.dateStr}","${e.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}","${e.category || 'Lainnya'}","${e.description}","${e.notes || ''}",${e.amount}`
     );
     const csvContent = headers.concat(rows).join('\n');
@@ -62,36 +49,33 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `ArthaFlow_Pengeluaran_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `ArthaFlow_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
-
   return (
-    <main>
+    <div>
       {/* Filter bar */}
       <div className="filter-bar">
-        {/* Search */}
         <div className="search-box">
           <Search size={14} className="search-icon" />
           <input
             type="text"
             className="search-input"
-            placeholder="Cari pengeluaran..."
+            placeholder="Cari transaksi..."
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
           {query && (
-            <button className="search-clear" onClick={() => setQuery('')}>
+            <button className="search-clear" onClick={() => setQuery('')} aria-label="Hapus pencarian">
               <X size={12} />
             </button>
           )}
         </div>
 
-        {/* Category tabs */}
-        <div className="cat-tabs" style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
+        <div className="cat-tabs">
           {usedCategories.map(cat => (
             <button
               key={cat}
@@ -107,30 +91,21 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
       {/* Result info */}
       <div className="list-head">
         <span className="list-title">
-          {activeCat !== 'Semua' || query ? 'Hasil Filter' : 'Riwayat'}
+          {activeCat !== 'Semua' || query ? 'Hasil filter' : 'Riwayat'}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="list-actions">
           <span className="list-count">
-          {filtered.length} entri
+            {filtered.length} entri
             {filteredIncome > 0 && (
-              <span style={{ color: '#28a745' }}> · +{formatRupiah(filteredIncome)}</span>
+              <span style={{ color: 'var(--income)' }}> · +{formatRupiah(filteredIncome)}</span>
             )}
             {filteredExpense > 0 && (
-              <span style={{ color: 'var(--danger)' }}> · -{formatRupiah(filteredExpense)}</span>
+              <span style={{ color: 'var(--expense)' }}> · -{formatRupiah(filteredExpense)}</span>
             )}
           </span>
           {filtered.length > 0 && (
-            <button
-              onClick={exportToCSV}
-              title="Download CSV"
-              style={{
-                background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-dim)',
-                padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem'
-              }}
-              onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--cyan)'; e.currentTarget.style.color = 'var(--cyan)' }}
-              onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-dim)' }}
-            >
-              <Download size={13} /> Export
+            <button onClick={exportToCSV} title="Export CSV" className="csv-btn">
+              <Download size={12} /> CSV
             </button>
           )}
         </div>
@@ -145,21 +120,20 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
         </div>
       ) : (
         <div className="expense-list">
-          {filtered.map((exp, index) => {
+          {filtered.map((exp) => {
             const isEditing = editId === exp.id;
-            const delayStyle = { animationDelay: `${index * 0.05}s` };
-            
+
             if (isEditing) {
               return (
-                <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`} style={{ padding: '0.75rem', display: 'block', ...delayStyle }}>
-                  <form action={handleEditSubmit} className="edit-inline-form">
+                <div key={exp.id} className="edit-form">
+                  <form action={handleEditSubmit}>
                     <input type="hidden" name="id" value={exp.id} />
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div className="edit-form-row">
                       <select
                         name="type"
                         className="input"
                         defaultValue={exp.type || 'expense'}
-                        style={{ padding: '0.4rem', fontSize: '0.85rem', width: 'auto' }}
+                        style={{ width: 'auto', padding: '0.35rem' }}
                       >
                         <option value="expense">Pengeluaran</option>
                         <option value="income">Pemasukan</option>
@@ -170,15 +144,14 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                         className="input"
                         defaultValue={exp.description}
                         required
-                        style={{ padding: '0.4rem', fontSize: '0.85rem' }}
+                        style={{ flex: 1, padding: '0.35rem' }}
                       />
                       <select
                         name="category"
                         className="input"
                         defaultValue={exp.category || 'Lainnya'}
-                        style={{ padding: '0.4rem', fontSize: '0.85rem', width: 'auto' }}
+                        style={{ width: 'auto', padding: '0.35rem' }}
                       >
-                        {/* We add the current category in case it was deleted from db */}
                         <option value={exp.category}>{exp.category}</option>
                         <optgroup label="Pengeluaran">
                           {expenseCategories.filter(c => c.name !== exp.category).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -188,27 +161,28 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                         </optgroup>
                       </select>
                     </div>
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <input
-                      type="text"
-                      name="notes"
-                      className="input"
-                      defaultValue={exp.notes || ''}
-                      placeholder="Catatan (opsional)"
-                      style={{ padding: '0.4rem', fontSize: '0.82rem', width: '100%' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <input
-                      type="checkbox"
-                      name="is_recurring"
-                      id={`rec-${exp.id}`}
-                      defaultChecked={!!exp.is_recurring}
-                      style={{ width: '14px', height: '14px', accentColor: 'var(--cyan)', cursor: 'pointer' }}
-                    />
-                    <label htmlFor={`rec-${exp.id}`} style={{ fontSize: '0.78rem', color: 'var(--text-dim)', cursor: 'pointer' }}>🔄 Rutin tiap bulan</label>
-                  </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <div className="edit-form-row">
+                      <input
+                        type="text"
+                        name="notes"
+                        className="input"
+                        defaultValue={exp.notes || ''}
+                        placeholder="Catatan (opsional)"
+                        style={{ flex: 1, padding: '0.35rem' }}
+                      />
+                    </div>
+                    <div className="edit-form-row" style={{ alignItems: 'center' }}>
+                      <div className="recurring-field">
+                        <input
+                          type="checkbox"
+                          name="is_recurring"
+                          id={`rec-${exp.id}`}
+                          defaultChecked={!!exp.is_recurring}
+                        />
+                        <label htmlFor={`rec-${exp.id}`}>
+                          <Repeat size={11} style={{ marginRight: '0.15rem', verticalAlign: '-1px' }} /> Rutin
+                        </label>
+                      </div>
                       <input
                         type="number"
                         name="amount"
@@ -216,12 +190,12 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                         defaultValue={exp.amount}
                         min="1"
                         required
-                        style={{ padding: '0.4rem', fontSize: '0.85rem', flex: 1 }}
+                        style={{ flex: 1, padding: '0.35rem' }}
                       />
-                      <button type="submit" className="budget-save-btn" disabled={isPending} style={{ padding: '0.4rem 0.8rem' }}>
-                        <Check size={14} /> Simpan
+                      <button type="submit" className="budget-save-btn" disabled={isPending} style={{ padding: '0.35rem 0.6rem' }}>
+                        <Check size={13} /> Simpan
                       </button>
-                      <button type="button" className="btn-del" onClick={() => setEditId(null)}>
+                      <button type="button" className="btn-action" onClick={() => setEditId(null)}>
                         Batal
                       </button>
                     </div>
@@ -231,37 +205,39 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
             }
 
             return (
-              <div key={exp.id} className={`expense-item c-${exp.category || 'Lainnya'}`} style={delayStyle}>
-                <div className="expense-icon">
-                  {getCategoryIcon(exp.category, exp.type)}
-                </div>
+              <div key={exp.id} className="expense-item">
                 <div className="expense-info">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <div className="expense-desc">{exp.description}</div>
-                    {exp.is_recurring === 1 && (
-                      <span title="Pengeluaran Rutin" style={{ fontSize: '0.7rem', background: 'var(--accent-muted)', color: 'var(--text-sub)', padding: '0.1rem 0.35rem', borderRadius: '3px', whiteSpace: 'nowrap' }}>🔄 Rutin</span>
-                    )}
+                  <div className="expense-desc">
+                    {exp.description}
                   </div>
                   {exp.notes && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.15rem', fontStyle: 'italic' }}>
-                      📝 {exp.notes}
-                    </div>
+                    <div className="expense-notes">{exp.notes}</div>
                   )}
                   <div className="expense-meta">
-                    {exp.category || 'Lainnya'} &middot; {exp.dateStr}
+                    <span>{exp.category || 'Lainnya'}</span>
+                    <span>&middot;</span>
+                    <span>{exp.dateStr}</span>
+                    {exp.is_recurring === 1 && (
+                      <>
+                        <span>&middot;</span>
+                        <span className="recurring-badge">
+                          <Repeat size={10} /> Rutin
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="expense-right">
-                  <div className="expense-amount" style={{ color: exp.type === 'income' ? '#28a745' : '' }}>
-                    {exp.type === 'income' ? '+' : ''}{formatRupiah(exp.amount)}
+                  <div className={`expense-amount ${exp.type === 'income' ? 'expense-amount--income' : ''}`}>
+                    {exp.type === 'income' ? '+' : '-'}{formatRupiah(exp.amount)}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.2rem' }}>
-                    <button type="button" className="btn-del" title="Edit" onClick={() => setEditId(exp.id)}>
-                      <Edit2 size={14} />
+                  <div className="expense-actions">
+                    <button type="button" className="btn-action" title="Edit" onClick={() => setEditId(exp.id)}>
+                      <Edit2 size={13} />
                     </button>
                     <form action={deleteExpense.bind(null, exp.id)}>
-                      <button type="submit" className="btn-del" title="Hapus">
-                        <Trash2 size={14} />
+                      <button type="submit" className="btn-action btn-action--danger" title="Hapus">
+                        <Trash2 size={13} />
                       </button>
                     </form>
                   </div>
@@ -271,6 +247,6 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

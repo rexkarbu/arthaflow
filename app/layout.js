@@ -4,7 +4,7 @@ import { Toaster } from 'sonner';
 
 export const metadata = {
   title: 'ArthaFlow',
-  description: 'Track your expenses with Persona 3 Reload style',
+  description: 'Catatan keuangan pribadi yang tenang dan presisi.',
 };
 
 export const viewport = {
@@ -12,7 +12,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#000508',
+  themeColor: '#0d0f0e',
 };
 
 export default function RootLayout({ children }) {

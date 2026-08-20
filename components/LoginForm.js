@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, register } from '@/app/actions';
-import { Lock, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LoginForm() {
@@ -33,60 +32,67 @@ export default function LoginForm() {
         toast.error(res.error);
         setLoading(false);
       } else {
-        toast.success('Login berhasil!');
+        toast.success('Login berhasil');
         router.push('/');
         router.refresh();
       }
     }
   }
 
-
   return (
     <div className="login-container">
-      <div className="login-card card">
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem', color: 'var(--cyan)' }}>
-          {isRegister ? <UserPlus size={40} /> : <Lock size={40} />}
+      <div className="login-left">
+        <div className="login-brand">
+          ArthaFlow<span>.</span>
         </div>
-        <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>ArthaFlow.</h2>
-        <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '1.5rem' }}>
-          {isRegister ? 'Buat akun baru Anda.' : 'Masukkan username dan password.'}
+        <h1 className="login-tagline">
+          Keuangan pribadi, tanpa keribetan.
+        </h1>
+        <p className="login-desc">
+          Track income, expenses, monthly budgets, and financial goals in one place.
         </p>
-
+      </div>
+      
+      <div className="login-right">
+        <h2 className="login-form-title">
+          {isRegister ? 'Buat akun baru' : 'Masuk ke ArthaFlow'}
+        </h2>
+        
         <form onSubmit={handleSubmit}>
           <div className="field">
+            <label className="label">Username</label>
             <input
               type="text"
               name="username"
               className="input"
-              placeholder="Username..."
+              placeholder="Username"
               required
               autoFocus
-              style={{ textAlign: 'center', letterSpacing: '1px' }}
             />
           </div>
-          <div className="field">
+          <div className="field" style={{ marginBottom: '1.5rem' }}>
+            <label className="label">Password</label>
             <input
               type="password"
               name="password"
               className="input"
-              placeholder="Password..."
+              placeholder="Password"
               required
-              style={{ textAlign: 'center', letterSpacing: '2px' }}
             />
           </div>
 
           <button type="submit" className="btn-submit" disabled={loading}>
-            {loading ? 'Memeriksa...' : (isRegister ? 'Daftar' : 'Masuk')}
+            {loading ? 'Memproses...' : (isRegister ? 'Daftar' : 'Masuk')}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8rem' }}>
+        <div className="login-switch">
+          {isRegister ? 'Sudah punya akun? ' : 'Belum punya akun? '}
           <button
             type="button"
             onClick={() => setIsRegister(!isRegister)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-dim)', textDecoration: 'underline', cursor: 'pointer' }}
           >
-            {isRegister ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Buat baru'}
+            {isRegister ? 'Masuk' : 'Buat baru'}
           </button>
         </div>
       </div>

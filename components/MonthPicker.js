@@ -16,20 +16,8 @@ export default function MonthPicker({ currentMonth }) {
           router.push('/');
         }
       }}
-      style={{
-        padding: '0.3rem 0.6rem',
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border)',
-        color: 'var(--text)',
-        fontFamily: 'Outfit, sans-serif',
-        fontSize: '0.8rem',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        outline: 'none',
-        marginLeft: '1rem',
-        minWidth: '140px',
-        flexShrink: 0,
-      }}
+      className="month-input"
+      aria-label="Pilih Bulan"
     />
   );
 }

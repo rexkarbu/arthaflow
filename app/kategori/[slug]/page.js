@@ -9,6 +9,27 @@ function formatRupiah(n) {
   }).format(n);
 }
 
+function formatWIB(isoString) {
+  const d = new Date(isoString);
+  d.setUTCHours(d.getUTCHours() + 7); // UTC+7 WIB
+  
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const day = d.getUTCDate();
+  const month = months[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const hours = String(d.getUTCHours()).padStart(2, '0');
+  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
+  
+  return `${day} ${month} ${year}, ${hours}:${minutes}`;
+}
+
+function formatShortDate(isoString) {
+  const d = new Date(isoString);
+  d.setUTCHours(d.getUTCHours() + 7);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+}
+
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -34,7 +55,7 @@ export default async function CategoryDetailPage({ params }) {
     .filter(e => e.type !== 'income' && e.category === categoryName)
     .map(e => ({
       ...e,
-      dateStr: new Date(e.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+      dateStr: formatWIB(e.date)
     }))
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -46,7 +67,7 @@ export default async function CategoryDetailPage({ params }) {
     const weekStart = getWeekStart(exp.date);
     const weekKey = weekStart.toISOString().slice(0, 10);
     if (!weeklyTrendMap[weekKey]) {
-      weeklyTrendMap[weekKey] = { total: 0, label: weekStart.toLocaleString('id-ID', { day: 'numeric', month: 'short' }) };
+      weeklyTrendMap[weekKey] = { total: 0, label: formatShortDate(weekStart.toISOString()) };
     }
     weeklyTrendMap[weekKey].total += exp.amount;
   });
@@ -63,28 +84,27 @@ export default async function CategoryDetailPage({ params }) {
 
   return (
     <div className="wrap detail-page">
-      <header className="site-header" style={{ marginBottom: '1rem' }}>
+      <header className="site-header">
         <div>
           <h1 className="site-title">ArthaFlow<span>.</span></h1>
-          <span className="site-badge">Detail Kategori</span>
         </div>
         <div className="site-header-right">
           <Link href="/" className="back-link">← Kembali</Link>
         </div>
       </header>
 
-      <div className="card detail-hero">
-        <div className="card-head">Kategori: {categoryName}</div>
-        <div className="card-body detail-hero-body">
-          <div>
+      <div className="detail-hero">
+        <div className="detail-hero-title">Kategori: {categoryName}</div>
+        <div className="detail-hero-body">
+          <div className="detail-stat">
             <div className="detail-label">Total pengeluaran</div>
             <div className="detail-amount">{formatRupiah(totalExpense)}</div>
           </div>
-          <div>
+          <div className="detail-stat">
             <div className="detail-label">Rata-rata per transaksi</div>
             <div className="detail-amount">{formatRupiah(avgExpense)}</div>
           </div>
-          <div>
+          <div className="detail-stat">
             <div className="detail-label">Jumlah transaksi</div>
             <div className="detail-amount">{categoryExpenses.length} entri</div>
           </div>
@@ -92,11 +112,11 @@ export default async function CategoryDetailPage({ params }) {
       </div>
 
       <div className="detail-grid">
-        <div className="card">
-          <div className="card-head">Tren per minggu</div>
-          <div className="card-body">
+        <div>
+          <div className="section-title">Tren per minggu</div>
+          <div>
             {weeklyTrend.length === 0 ? (
-              <div className="empty" style={{ padding: '1rem' }}>Belum ada data untuk kategori ini.</div>
+              <div className="empty">Belum ada data untuk kategori ini.</div>
             ) : (
               <div className="trend-list">
                 {weeklyTrend.map(item => {
@@ -108,7 +128,7 @@ export default async function CategoryDetailPage({ params }) {
                         <strong>{formatRupiah(item.total)}</strong>
                       </div>
                       <div className="bar-track">
-                        <div className="bar-fill fill-Makanan" style={{ width: `${Math.max(pct, 10)}%` }} />
+                        <div className="bar-fill" style={{ width: `${Math.max(pct, 2)}%`, background: 'var(--cat-1)' }} />
                       </div>
                     </div>
                   );
@@ -118,9 +138,9 @@ export default async function CategoryDetailPage({ params }) {
           </div>
         </div>
 
-        <div className="card"> 
-          <div className="card-head">Riwayat pengeluaran</div>
-          <div className="card-body detail-list-wrap">
+        <div> 
+          <div className="section-title">Riwayat pengeluaran</div>
+          <div>
             <ExpenseList expenses={categoryExpenses} expenseCategories={expenseCategories} incomeCategories={incomeCategories} />
           </div>
         </div>

@@ -1,42 +1,25 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { Sun, Moon } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Avoid hydration mismatch: only render icon after mounted client-side
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-  if (!mounted) return <div style={{ width: '32px', height: '28px' }} />;
+  useEffect(() => setMounted(true), []);
 
-  const isDark = theme === 'dark';
+  if (!mounted) return <button className="header-control" style={{ width: '32px', height: '32px' }} aria-hidden="true" />;
 
   return (
     <button
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      title={isDark ? 'Mode Terang' : 'Mode Gelap'}
-      style={{
-        background: 'transparent',
-        border: '1px solid var(--border)',
-        color: 'var(--text-dim)',
-        padding: '0.3rem 0.45rem',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        marginLeft: '0.5rem',
-        transition: 'border-color 0.2s, color 0.2s',
-      }}
-      onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--cyan)'; e.currentTarget.style.color = 'var(--cyan)'; }}
-      onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
+      className="header-control"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      title="Ubah Tema"
+      aria-label="Ubah Tema"
     >
-      {isDark ? <Sun size={14} /> : <Moon size={14} />}
+      {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
     </button>
   );
 }

@@ -1,22 +1,20 @@
-import { getExpenses, addExpense, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals } from './actions';
-import { cookies } from 'next/headers'; // used internally by getAuthSession
-import { Utensils, Bus, Gamepad2, ShoppingBag, MoreHorizontal } from 'lucide-react';
+import { getExpenses, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals } from './actions';
+import { cookies } from 'next/headers';
+import Link from 'next/link';
 import ExpenseList from '@/components/ExpenseList';
 import BudgetBar from '@/components/BudgetBar';
-import ExpenseChart from '@/components/ExpenseChart';
 import TrendChart from '@/components/TrendChart';
 import MonthPicker from '@/components/MonthPicker';
 import LoginForm from '@/components/LoginForm';
 import LogoutButton from '@/components/LogoutButton';
 import ThemeToggle from '@/components/ThemeToggle';
-import ExpenseForm from '@/components/ExpenseForm';
-import AnimatedNumber from '@/components/AnimatedNumber';
+import TransactionDialog from '@/components/TransactionDialog';
 import FinancialGoals from '@/components/FinancialGoals';
 import './globals.css';
 
 export const metadata = {
-  title: 'Pengeluaran',
-  description: 'Catatan pengeluaran pribadi',
+  title: 'ArthaFlow',
+  description: 'Catatan keuangan pribadi',
 };
 
 function formatRupiah(n) {
@@ -27,7 +25,7 @@ function formatRupiah(n) {
 
 function formatWIB(isoString) {
   const d = new Date(isoString);
-  d.setUTCHours(d.getUTCHours() + 7); // UTC+7 WIB
+  d.setUTCHours(d.getUTCHours() + 7);
   
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const day = d.getUTCDate();
@@ -44,15 +42,11 @@ function formatMonthLabel(dateObj) {
   return `${longMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 }
 
-function CategoryIcon({ category, size = 16 }) {
-  const props = { size };
-  switch (category) {
-    case 'Makanan':      return <Utensils {...props} />;
-    case 'Transportasi': return <Bus {...props} />;
-    case 'Hiburan':      return <Gamepad2 {...props} />;
-    case 'Belanja':      return <ShoppingBag {...props} />;
-    default:             return <MoreHorizontal {...props} />;
-  }
+// Map common categories to semantic colors in the new palette
+function getCategoryColor(index) {
+  // We have 6 palette colors: --cat-1 to --cat-6
+  const normalizedIndex = (index % 6) + 1;
+  return `var(--cat-${normalizedIndex})`;
 }
 
 export default async function Home(props) {
@@ -69,7 +63,6 @@ export default async function Home(props) {
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const selectedMonth = monthParam || currentMonth;
 
-  // Seed recurring expenses for selected month (auto-populate from previous month)
   await seedRecurringExpenses(selectedMonth);
 
   const rawExpenses = await getExpenses();
@@ -77,7 +70,6 @@ export default async function Home(props) {
   const incomeCategories = await getCategories('income');
   const goals = await getGoals();
   
-  // Calculate all-time total savings (for goals progress)
   let allTimeIncome = 0;
   let allTimeExpense = 0;
   rawExpenses.forEach(e => {
@@ -98,7 +90,6 @@ export default async function Home(props) {
   const compareMonth = `${compareDate.getFullYear()}-${String(compareDate.getMonth() + 1).padStart(2, '0')}`;
   const compareMonthLabel = formatMonthLabel(compareDate);
 
-  // Filter raw expenses by selected month
   const expenses = rawExpenses
     .filter(e => e.date.startsWith(selectedMonth))
     .map(e => ({
@@ -117,10 +108,8 @@ export default async function Home(props) {
   const expenseDiff = reportExpense - previousExpense;
   const expenseDiffPct = previousExpense > 0 ? Math.round((expenseDiff / previousExpense) * 100) : 0;
 
-  // Budget — must be fetched before budgetAmount/monthSpent are used below
   const budget = await getBudget(selectedMonth);
 
-  // Hitung total keseluruhan berdasarkan filter
   let totalIncome = 0;
   let totalExpense = 0;
   expenses.forEach(e => {
@@ -160,9 +149,6 @@ export default async function Home(props) {
       ? `Turun ${Math.abs(expenseDiffPct)}%`
       : 'Tetap sama';
 
-  // Hitung pengeluaran untuk budget bar (already computed above)
-
-  // Total khusus hari ini
   const todayStr = now.toISOString().slice(0, 10);
   const todayExpense = expenses
     .filter(e => e.date.startsWith(todayStr) && e.type !== 'income')
@@ -175,10 +161,9 @@ export default async function Home(props) {
     return acc;
   }, {});
 
-  // Data for Trend Chart
   const trendDataMap = {};
   rawExpenses.forEach(e => {
-    const monthKey = e.date.slice(0, 7); // YYYY-MM
+    const monthKey = e.date.slice(0, 7);
     if (!trendDataMap[monthKey]) {
       trendDataMap[monthKey] = { income: 0, expense: 0 };
     }
@@ -191,14 +176,29 @@ export default async function Home(props) {
 
   const trendData = Object.keys(trendDataMap).sort().map(key => {
     const [y, m] = key.split('-');
-    const dateObj = new Date(parseInt(y), parseInt(m) - 1);
-    const monthName = dateObj.toLocaleString('id-ID', { month: 'short', year: '2-digit' });
+    // Using manual format array for month names instead of toLocaleString to avoid Vercel ICU issues
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const monthName = `${shortMonths[parseInt(m) - 1]} '${y.slice(2)}`;
     return {
       month: monthName,
       income: trendDataMap[key].income,
       expense: trendDataMap[key].expense
     };
   });
+
+  // Calculate monthly insight text
+  let insightText = '';
+  if (previousExpense > 0) {
+    if (expenseDiff < 0) {
+      insightText = `Pengeluaran bulan lalu turun ${Math.abs(expenseDiffPct)}% dibanding bulan sebelumnya.`;
+    } else if (expenseDiff > 0) {
+      insightText = `Pengeluaran bulan lalu naik ${Math.abs(expenseDiffPct)}% dibanding bulan sebelumnya.`;
+    } else {
+      insightText = `Pengeluaran bulan lalu sama dengan bulan sebelumnya.`;
+    }
+  } else {
+    insightText = `Belum cukup data untuk membandingkan pengeluaran dengan bulan sebelumnya.`;
+  }
 
   const printReportDate = new Date().toLocaleString('id-ID', {
     dateStyle: 'medium',
@@ -223,6 +223,7 @@ export default async function Home(props) {
 
   const reportTemplate = (
     <div className="print-report-template">
+      {/* ... [PRINT TEMPLATE REMAINS EXACTLY THE SAME] ... */}
       <div className="print-report-header">
         <div className="print-brand">
           <img src="/arthaflow-brand.svg" alt="ArthaFlow official brand" className="print-brand-logo-image" />
@@ -381,12 +382,10 @@ export default async function Home(props) {
 
   return (
     <div className="wrap">
-
       {/* Header */}
       <header className="site-header">
         <div>
           <h1 className="site-title">ArthaFlow<span>.</span></h1>
-          <span className="site-badge">Catatan Keuangan</span>
         </div>
         <div className="site-header-right">
           <MonthPicker currentMonth={selectedMonth} />
@@ -395,44 +394,27 @@ export default async function Home(props) {
         </div>
       </header>
 
-      {/* Ringkasan */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div className="total-card" style={{ marginBottom: 0 }}>
-          <div>
-            <div className="total-label" style={{ color: 'var(--success)' }}>Total Pemasukan</div>
-            <div className="total-amount">
-              <span>Rp</span>
-              <AnimatedNumber value={totalIncome} />
-            </div>
-          </div>
+      {/* Financial Overview (replaces the 3 cards) */}
+      <div className="fin-summary">
+        <div className="fin-balance-label">Saldo bulan ini</div>
+        <div className="fin-balance">
+          <span className="currency">Rp</span>
+          {balance.toLocaleString('id-ID')}
         </div>
-        <div className="total-card" style={{ marginBottom: 0 }}>
-          <div>
-            <div className="total-label" style={{ color: 'var(--danger)' }}>Total Pengeluaran</div>
-            <div className="total-amount">
-              <span>Rp</span>
-              <AnimatedNumber value={totalExpense} />
-            </div>
+        
+        <div className="fin-detail-row">
+          <div className="fin-detail-item">
+            <span className="label">Pemasukan</span>
+            <span className="fin-income-val">+{formatRupiah(totalIncome)}</span>
           </div>
-          <div className="total-meta" style={{ marginTop: '0.5rem' }}>
-            <div>Hari ini: <strong>{formatRupiah(todayExpense)}</strong></div>
-          </div>
-        </div>
-        <div className="total-card" style={{ marginBottom: 0 }}>
-          <div>
-            <div className="total-label" style={{ color: 'var(--text-sub)' }}>Saldo Sisa</div>
-            <div className="total-amount">
-              <span>Rp</span>
-              <AnimatedNumber value={balance} />
-            </div>
-          </div>
-          <div className="total-meta" style={{ marginTop: '0.5rem' }}>
-            <div>Total entri: <strong>{expenses.length}</strong></div>
+          <div className="fin-detail-item">
+            <span className="label">Pengeluaran</span>
+            <span className="fin-expense-val">-{formatRupiah(totalExpense)}</span>
           </div>
         </div>
       </div>
 
-      {/* Budget bulan ini */}
+      {/* Budget Integration */}
       <BudgetBar
         month={selectedMonth}
         monthLabel={monthLabel}
@@ -440,97 +422,70 @@ export default async function Home(props) {
         spent={monthSpent}
       />
 
-      {/* Main */}
-      <div className="main-grid">
-
-        {/* Sidebar */}
-        <aside>
-          {/* Form */}
-          <ExpenseForm expenseCategories={expenseCategories} incomeCategories={incomeCategories} />
-
-          <div className="card report-card">
-            <div className="card-head">Laporan Bulanan Otomatis</div>
-            <div className="card-body">
-              <div className="report-header">
-                <div>
-                  <div className="report-period">{reportMonthLabel}</div>
-                  <div className="report-pill">{savingTrendLabel}</div>
-                </div>
-                <div className="report-percent">{Math.abs(savingPct)}%</div>
-              </div>
-
-              <div className="report-grid">
-                <div>
-                  <div className="report-label">Kategori terboros</div>
-                  <div className="report-value">
-                    {topReportCategory ? topReportCategory[0] : 'Belum ada data'}
-                  </div>
-                </div>
-                <div>
-                  <div className="report-label">Pengeluaran</div>
-                  <div className="report-value">{formatRupiah(reportExpense)}</div>
-                </div>
-                <div>
-                  <div className="report-label">Pemasukan</div>
-                  <div className="report-value">{formatRupiah(reportIncome)}</div>
-                </div>
-                <div>
-                  <div className="report-label">Selisih</div>
-                  <div className={`report-value ${reportBalance >= 0 ? 'report-positive' : 'report-negative'}`}>
-                    {reportBalance >= 0 ? '+' : '-'}{formatRupiah(Math.abs(reportBalance))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="report-compare">
-                <span>Bandingkan dengan {compareMonthLabel}</span>
-                <strong>{spendingTrendLabel}</strong>
-              </div>
-            </div>
-          </div>
-
-          <ExpenseChart expenses={expenses} />
-          
-          <TrendChart data={trendData} />
-
-          <FinancialGoals goals={goals} totalSavings={totalSavings} />
-
-          {/* Stats */}
-          {expenses.length > 0 && (
-            <div className="card">
-              <div className="card-head">Breakdown</div>
-              <div className="card-body">
-                <div className="stat-row">
-                  {Object.entries(byCategory)
-                    .sort(([,a],[,b]) => b - a)
-                    .map(([cat, amt]) => {
-                      const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
-                      const categorySlug = encodeURIComponent(cat);
-                      return (
-                        <a key={cat} className="stat-item stat-link" href={`/kategori/${categorySlug}`}>
-                          <div className="stat-top">
-                            <div className={`stat-name icon-${cat}`}>
-                              <CategoryIcon category={cat} size={13} />
-                              <span>{cat}</span>
-                            </div>
-                            <span className="stat-pct">{pct}%</span>
-                          </div>
-                          <div className="bar-track">
-                            <div className={`bar-fill fill-${cat}`} style={{ width: `${pct}%` }} />
-                          </div>
-                        </a>
-                      );
-                    })}
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
-
-        {/* List */}
-        <ExpenseList expenses={expenses} expenseCategories={expenseCategories} incomeCategories={incomeCategories} />
-
+      {/* Monthly Insight (replaces large Laporan Bulanan card) */}
+      <div className="monthly-insight">
+        {insightText}
       </div>
+
+      {/* Primary Analytics (Trend/Cash flow) */}
+      <TrendChart data={trendData} />
+
+      {/* Category Breakdown (Replaces Donut Chart) */}
+      {expenses.length > 0 && (
+        <div className="category-breakdown">
+          <div className="section-title">Pengeluaran terbesar</div>
+          <div>
+            {Object.entries(byCategory)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 5) // Show top 5
+              .map(([cat, amt], index) => {
+                const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
+                const categorySlug = encodeURIComponent(cat);
+                const colorToken = getCategoryColor(index);
+                
+                return (
+                  <div key={cat} className="cat-item">
+                    <div className="cat-item-top">
+                      <Link href={`/kategori/${categorySlug}`} className="cat-item-name">
+                        {cat}
+                      </Link>
+                      <div className="cat-item-values">
+                        <span className="cat-item-amount">{formatRupiah(amt)}</span>
+                        <span className="cat-item-pct">{pct}%</span>
+                      </div>
+                    </div>
+                    <div className="cat-bar-track">
+                      <div 
+                        className="cat-bar-fill" 
+                        style={{ width: `${Math.max(pct, 2)}%`, background: colorToken }} 
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* Financial Goals Preview */}
+      <FinancialGoals goals={goals} totalSavings={totalSavings} />
+
+      {/* Transactions */}
+      <div>
+        <div className="txn-header">
+          <div className="section-title" style={{ marginBottom: 0 }}>Transaksi</div>
+          <TransactionDialog
+            expenseCategories={expenseCategories}
+            incomeCategories={incomeCategories}
+          />
+        </div>
+        <ExpenseList 
+          expenses={expenses} 
+          expenseCategories={expenseCategories} 
+          incomeCategories={incomeCategories} 
+        />
+      </div>
+      
     </div>
   );
 }
