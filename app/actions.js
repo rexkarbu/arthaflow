@@ -143,7 +143,17 @@ export async function getExpenses() {
     sql: 'SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC',
     args: [userId]
   });
-  return res.rows;
+  return res.rows.map(r => ({
+    id: Number(r.id),
+    user_id: r.user_id != null ? Number(r.user_id) : null,
+    amount: Number(r.amount),
+    description: String(r.description ?? ''),
+    date: String(r.date ?? ''),
+    category: String(r.category ?? 'Lainnya'),
+    notes: r.notes ? String(r.notes) : '',
+    is_recurring: Number(r.is_recurring ?? 0),
+    type: String(r.type ?? 'expense')
+  }));
 }
 
 export async function addExpense(formData) {
@@ -371,7 +381,10 @@ export async function getCategories(type = 'expense') {
     sql: 'SELECT id, name FROM categories WHERE user_id = ? AND type = ? ORDER BY id ASC',
     args: [userId, type]
   });
-  return res.rows;
+  return res.rows.map(row => ({
+    id: Number(row.id),
+    name: String(row.name)
+  }));
 }
 
 export async function addCategory(formData) {

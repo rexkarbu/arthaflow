@@ -47,10 +47,10 @@ export default function LoginForm() {
             ArthaFlow<span>.</span>
           </div>
           <h1 className="login-tagline">
-            Keuangan pribadi, lebih jelas.
+            Keuangan pribadi,<br />lebih jelas.
           </h1>
           <p className="login-desc">
-            Pantau pemasukan, pengeluaran, budget, dan tujuan keuangan dalam satu tempat.
+            Pantau pemasukan, pengeluaran,<br />budget, dan tujuan keuangan.
           </p>
         </div>
         
@@ -59,7 +59,7 @@ export default function LoginForm() {
             ArthaFlow<span>.</span>
           </div>
           <h2 className="login-form-title">
-            {isRegister ? 'Buat akun baru' : 'Masuk ke akun'}
+            {isRegister ? 'Buat akun baru' : 'Masuk ke ArthaFlow'}
           </h2>
           
           <form onSubmit={handleSubmit}>

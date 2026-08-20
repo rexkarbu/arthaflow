@@ -36,6 +36,13 @@ function formatWIB(isoString) {
   return `${day} ${month} ${year}, ${hours}:${minutes}`;
 }
 
+function formatShortWIB(isoString) {
+  const d = new Date(isoString);
+  d.setUTCHours(d.getUTCHours() + 7);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+}
+
 function formatMonthLabel(dateObj) {
   const longMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   return `${longMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
@@ -85,7 +92,8 @@ export default async function Home(props) {
     .filter(e => e.date.startsWith(selectedMonth))
     .map(e => ({
       ...e,
-      dateStr: formatWIB(e.date)
+      dateStr: formatWIB(e.date),
+      shortDateStr: formatShortWIB(e.date)
     }));
 
   const reportExpenses = rawExpenses.filter(e => e.date.startsWith(reportMonth));
@@ -378,87 +386,96 @@ export default async function Home(props) {
         </div>
       </header>
 
-      {/* Financial Hero (Copilot + Mercury hierarchy) */}
-      <div className="fin-summary">
-        <div className="fin-balance-label">Saldo bulan ini</div>
-        <div className="fin-balance">
-          <span className="currency">Rp</span>
-          {balance.toLocaleString('id-ID')}
-        </div>
-        
-        <div className="fin-detail-row">
-          <div className="fin-detail-item">
-            <span className="label">Pemasukan</span>
-            <span className="fin-income-val">+{formatRupiah(totalIncome)}</span>
+      {/* Financial Overview (Unified Composition: Balance + Details + Budget) */}
+      <div className="fin-overview">
+        <div className="fin-summary">
+          <div className="fin-balance-label">Saldo bulan ini</div>
+          <div className="fin-balance">
+            <span className="currency">Rp</span>
+            {balance.toLocaleString('id-ID')}
           </div>
-          <div className="fin-detail-item">
-            <span className="label">Pengeluaran</span>
-            <span className="fin-expense-val">-{formatRupiah(totalExpense)}</span>
+          
+          <div className="fin-detail-row">
+            <div className="fin-detail-item">
+              <span className="label">Pemasukan</span>
+              <span className="fin-income-val">+{formatRupiah(totalIncome)}</span>
+            </div>
+            <div className="fin-detail-item">
+              <span className="label">Pengeluaran</span>
+              <span className="fin-expense-val">-{formatRupiah(totalExpense)}</span>
+            </div>
           </div>
         </div>
+
+        {/* Budget Integration */}
+        <BudgetBar
+          month={selectedMonth}
+          monthLabel={monthLabel}
+          budget={budget}
+          spent={monthSpent}
+        />
       </div>
 
-      {/* Budget Integration (Copilot Principle) */}
-      <BudgetBar
-        month={selectedMonth}
-        monthLabel={monthLabel}
-        budget={budget}
-        spent={monthSpent}
-      />
-
-      {/* Monthly Insight */}
+      {/* Monthly Insight (Quiet, Compact Summary) */}
       <div className="monthly-insight">
         <span className="monthly-insight-label">RINGKASAN</span>
         <p className="monthly-insight-text">{insightText}</p>
       </div>
 
-      {/* Primary Analytics Grid: 65% Cash Flow / 35% Category Breakdown */}
-      <div className="analytics-grid">
-        <TrendChart data={trendData} />
+      {/* Analytics Surface (Grouped Card Surface: 65% Cash Flow / 35% Category Ranking) */}
+      <div className="analytics-surface">
+        <div className="analytics-grid">
+          <TrendChart data={trendData} periodLabel={monthLabel} />
 
-        {expenses.length > 0 ? (
-          <div className="category-breakdown">
-            <div className="section-title">Pengeluaran terbesar</div>
-            <div className="cat-list">
-              {Object.entries(byCategory)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 5)
-                .map(([cat, amt]) => {
-                  const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
-                  const categorySlug = encodeURIComponent(cat);
-                  
-                  return (
-                    <div key={cat} className="cat-item">
-                      <div className="cat-item-top">
-                        <Link href={`/kategori/${categorySlug}`} className="cat-item-name">
-                          {cat}
-                        </Link>
-                        <div className="cat-item-values">
-                          <span className="cat-item-amount">{formatRupiah(amt)}</span>
-                          <span className="cat-item-pct">{pct}%</span>
+          {expenses.length > 0 ? (
+            <div className="category-breakdown">
+              <div className="section-title">Pengeluaran terbesar</div>
+              <div className="cat-list">
+                {Object.entries(byCategory)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 5)
+                  .map(([cat, amt]) => {
+                    const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
+                    const categorySlug = encodeURIComponent(cat);
+                    
+                    return (
+                      <div key={cat} className="cat-item">
+                        <div className="cat-item-top">
+                          <Link href={`/kategori/${categorySlug}`} className="cat-item-name">
+                            {cat}
+                          </Link>
+                          <div className="cat-item-values">
+                            <span className="cat-item-amount">{formatRupiah(amt)}</span>
+                            <span className="cat-item-pct">{pct}%</span>
+                          </div>
+                        </div>
+                        <div className="cat-bar-track">
+                          <div 
+                            className="cat-bar-fill" 
+                            style={{ width: `${Math.max(pct, 2)}%` }} 
+                          />
                         </div>
                       </div>
-                      <div className="cat-bar-track">
-                        <div 
-                          className="cat-bar-fill" 
-                          style={{ width: `${Math.max(pct, 2)}%` }} 
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
             </div>
-          </div>
-        ) : <div className="category-breakdown" />}
+          ) : (
+            <div className="category-breakdown">
+              <div className="section-title">Pengeluaran terbesar</div>
+              <div className="cat-empty">Belum ada pengeluaran di bulan ini.</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Financial Goals (Monarch Influence) */}
       <FinancialGoals goals={goals} totalSavings={totalSavings} />
 
-      {/* Transactions Register (Actual + Lunch Money) */}
+      {/* Transactions Overview Preview (Max 10 rows, simplified dates, context-aware footer link) */}
       <div className="transactions-container">
         <div className="txn-header">
-          <div className="section-title">Transaksi</div>
+          <div className="section-title">Transaksi terbaru</div>
           <TransactionDialog
             expenseCategories={expenseCategories}
             incomeCategories={incomeCategories}
@@ -468,7 +485,25 @@ export default async function Home(props) {
           expenses={expenses} 
           expenseCategories={expenseCategories} 
           incomeCategories={incomeCategories} 
+          mode="preview"
         />
+        {expenses.length > 0 && (
+          <div className="txn-preview-footer">
+            <span className="txn-preview-count">
+              {expenses.length > 10
+                ? `10 terbaru dari ${expenses.length} transaksi`
+                : `${expenses.length} transaksi bulan ini`}
+            </span>
+            <Link
+              href={selectedMonth ? `/transaksi?month=${selectedMonth}` : '/transaksi'}
+              className="txn-view-all-link"
+            >
+              {expenses.length > 10
+                ? 'Lihat semua transaksi →'
+                : 'Kelola transaksi →'}
+            </Link>
+          </div>
+        )}
       </div>
       
     </div>

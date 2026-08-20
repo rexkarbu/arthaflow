@@ -10,27 +10,55 @@ function formatRupiah(n) {
   }).format(n);
 }
 
-export default function ExpenseList({ expenses = [], expenseCategories = [], incomeCategories = [] }) {
+export default function ExpenseList({
+  expenses = [],
+  expenseCategories = [],
+  incomeCategories = [],
+  mode = 'full' // 'full' or 'preview'
+}) {
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState('Semua');
   const [editId, setEditId] = useState(null);
+  const [displayLimit, setDisplayLimit] = useState(10);
   const [isPending, startTransition] = useTransition();
+
+  const isPreview = mode === 'preview';
 
   const usedCategories = useMemo(() => {
     const cats = new Set(expenses.map(e => e.category || 'Lainnya'));
     return ['Semua', ...Array.from(cats).sort()];
   }, [expenses]);
 
+  // In full mode: filter across all transactions for the selected month
   const filtered = useMemo(() => {
+    if (isPreview) return expenses;
     return expenses.filter(e => {
       const matchCat = activeCat === 'Semua' || e.category === activeCat;
       const matchText = e.description.toLowerCase().includes(query.toLowerCase());
       return matchCat && matchText;
     });
-  }, [expenses, query, activeCat]);
+  }, [expenses, query, activeCat, isPreview]);
+
+  // In preview mode: maximum 10 items. In full mode: progressive slice (10 per batch)
+  const visibleExpenses = useMemo(() => {
+    if (isPreview) {
+      return expenses.slice(0, 10);
+    }
+    return filtered.slice(0, displayLimit);
+  }, [expenses, filtered, displayLimit, isPreview]);
 
   const filteredExpense = filtered.filter(e => e.type !== 'income').reduce((s, e) => s + e.amount, 0);
   const filteredIncome = filtered.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+
+  function handleQueryChange(val) {
+    setQuery(val);
+    setDisplayLimit(10); // Reset visible count on search change
+  }
+
+  function handleCategoryChange(val) {
+    setActiveCat(val);
+    setDisplayLimit(10); // Reset visible count on category change
+  }
 
   function handleEditSubmit(fd) {
     startTransition(async () => {
@@ -39,6 +67,7 @@ export default function ExpenseList({ expenses = [], expenseCategories = [], inc
     });
   }
 
+  // Exports the entire filtered dataset across the month
   function exportToCSV() {
     const headers = ['ID,Tanggal,Tipe,Kategori,Keterangan,Catatan,Jumlah (Rp)'];
     const rows = filtered.map(e =>
@@ -57,62 +86,71 @@ export default function ExpenseList({ expenses = [], expenseCategories = [], inc
 
   return (
     <div className="txn-register-section">
-      {/* Search & Filter Bar */}
-      <div className="filter-bar">
-        <div className="search-box">
-          <Search size={14} className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Cari transaksi..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
-          {query && (
-            <button className="search-clear" onClick={() => setQuery('')} aria-label="Hapus pencarian">
-              <X size={12} />
-            </button>
-          )}
-        </div>
+      {/* Full Mode Toolbar (Search, Category Select, CSV Export) */}
+      {!isPreview && (
+        <>
+          <div className="filter-bar">
+            <div className="search-box">
+              <Search size={14} className="search-icon" />
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Cari transaksi..."
+                value={query}
+                onChange={e => handleQueryChange(e.target.value)}
+              />
+              {query && (
+                <button className="search-clear" onClick={() => handleQueryChange('')} aria-label="Hapus pencarian">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
 
-        <select
-          className="cat-select"
-          value={activeCat}
-          onChange={(e) => setActiveCat(e.target.value)}
-          aria-label="Filter kategori"
-        >
-          <option value="Semua">Semua kategori</option>
-          {usedCategories.filter(c => c !== 'Semua').map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
-      </div>
+            <select
+              className="cat-select"
+              value={activeCat}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              aria-label="Filter kategori"
+            >
+              <option value="Semua">Semua kategori</option>
+              {usedCategories.filter(c => c !== 'Semua').map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
 
-      {/* Result info header */}
-      <div className="list-head">
-        <span className="list-title">
-          {activeCat !== 'Semua' || query ? 'Hasil filter' : 'Riwayat transaksi'}
-        </span>
-        <div className="list-actions">
-          <span className="list-count">
-            {filtered.length} entri
-            {filteredIncome > 0 && (
-              <span className="list-count-income"> · +{formatRupiah(filteredIncome)}</span>
+            {filtered.length > 0 && (
+              <button onClick={exportToCSV} title="Export CSV" className="csv-btn">
+                <Download size={11} /> CSV
+              </button>
             )}
-            {filteredExpense > 0 && (
-              <span className="list-count-expense"> · -{formatRupiah(filteredExpense)}</span>
-            )}
-          </span>
-          {filtered.length > 0 && (
-            <button onClick={exportToCSV} title="Export CSV" className="csv-btn">
-              <Download size={11} /> CSV
-            </button>
-          )}
-        </div>
-      </div>
+          </div>
+
+          {/* Result info header */}
+          <div className="list-head">
+            <span className="list-title">
+              {filtered.length > 10 ? (
+                `Menampilkan ${visibleExpenses.length} dari ${filtered.length} transaksi`
+              ) : (
+                `${filtered.length} transaksi`
+              )}
+            </span>
+            <div className="list-actions">
+              <span className="list-count">
+                {filteredIncome > 0 && (
+                  <span className="list-count-income">+{formatRupiah(filteredIncome)}</span>
+                )}
+                {filteredIncome > 0 && filteredExpense > 0 && <span> · </span>}
+                {filteredExpense > 0 && (
+                  <span className="list-count-expense">-{formatRupiah(filteredExpense)}</span>
+                )}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Transaction Register Rows */}
-      {filtered.length === 0 ? (
+      {visibleExpenses.length === 0 ? (
         <div className="empty">
           {expenses.length === 0
             ? 'Belum ada transaksi di bulan ini.'
@@ -120,7 +158,7 @@ export default function ExpenseList({ expenses = [], expenseCategories = [], inc
         </div>
       ) : (
         <div className="expense-list">
-          {filtered.map((exp) => {
+          {visibleExpenses.map((exp) => {
             const isEditing = editId === exp.id;
 
             if (isEditing) {
@@ -214,7 +252,7 @@ export default function ExpenseList({ expenses = [], expenseCategories = [], inc
                   <div className="expense-meta">
                     <span>{exp.category || 'Lainnya'}</span>
                     <span className="expense-meta-sep">&middot;</span>
-                    <span>{exp.dateStr}</span>
+                    <span>{isPreview ? (exp.shortDateStr || exp.dateStr) : exp.dateStr}</span>
                     {exp.is_recurring === 1 && (
                       <>
                         <span className="expense-meta-sep">&middot;</span>
@@ -244,6 +282,32 @@ export default function ExpenseList({ expenses = [], expenseCategories = [], inc
               </div>
             );
           })}
+
+          {/* Full Mode: Load More Pagination Controls */}
+          {!isPreview && filtered.length > displayLimit && (
+            <div className="txn-load-more">
+              <button
+                type="button"
+                className="txn-load-more-btn"
+                onClick={() => setDisplayLimit(prev => prev + 10)}
+              >
+                Lihat 10 lainnya ↓
+              </button>
+            </div>
+          )}
+
+          {!isPreview && filtered.length > 10 && visibleExpenses.length >= filtered.length && (
+            <div className="txn-load-more">
+              <span className="txn-all-loaded-text">Semua {filtered.length} transaksi ditampilkan</span>
+              <button
+                type="button"
+                className="txn-collapse-btn"
+                onClick={() => setDisplayLimit(10)}
+              >
+                Tampilkan lebih sedikit ↑
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

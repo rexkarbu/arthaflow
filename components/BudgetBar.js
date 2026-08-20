@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { setBudget } from '@/app/actions';
+import { Plus } from 'lucide-react';
 
 function formatRupiah(n) {
   return new Intl.NumberFormat('id-ID', {
@@ -39,7 +40,7 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
           className="budget-edit-btn"
           onClick={() => setEditing(prev => !prev)}
         >
-          {editing ? 'Batal' : (hasBudget ? 'Ubah budget' : 'Set budget')}
+          {editing ? 'Batal' : (hasBudget ? 'Ubah budget' : '+ Set budget')}
         </button>
       </div>
 
@@ -68,15 +69,15 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
           <div className="budget-primary-stat">
             {isDanger ? (
               <div className="budget-status-danger">
-                Melebihi budget sebesar <strong>{formatRupiah(Math.abs(sisa))}</strong>
+                <strong>{formatRupiah(Math.abs(sisa))}</strong> melewati budget
               </div>
             ) : isWarning ? (
               <div className="budget-status-warning">
-                <strong>{formatRupiah(sisa)}</strong> tersisa
+                <strong>{formatRupiah(sisa)}</strong> masih tersedia
               </div>
             ) : (
               <div className="budget-status-ok">
-                <strong>{formatRupiah(sisa)}</strong> tersisa
+                <strong>{formatRupiah(sisa)}</strong> masih tersedia
               </div>
             )}
             <div className="budget-supporting">
@@ -93,20 +94,20 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
 
           <div className="budget-numbers">
             <span>{hasBudget && budget > 0 ? Math.round((spent / budget) * 100) : 0}% digunakan</span>
-            {isDanger ? (
-              <span className="status-danger-text">
-                Lebih {formatRupiah(Math.abs(sisa))}
-              </span>
-            ) : (
-              <span>{formatRupiah(sisa)} tersisa</span>
-            )}
           </div>
         </>
       )}
 
       {!hasBudget && !editing && (
-        <div className="budget-empty-hint">
-          Belum ada budget untuk bulan ini.
+        <div className="budget-inline-empty">
+          <span className="budget-empty-text">Belum ada target budget untuk bulan ini.</span>
+          <button
+            type="button"
+            className="budget-create-btn"
+            onClick={() => setEditing(true)}
+          >
+            <Plus size={12} /> Set budget
+          </button>
         </div>
       )}
     </div>

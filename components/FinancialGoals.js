@@ -49,7 +49,7 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
     <div className="goals-section">
       <div className="goals-header">
         <div className="section-title">Tujuan</div>
-        {!isAdding && (
+        {!isAdding && goals.length > 0 && (
           <button onClick={() => setIsAdding(true)} className="goals-add-btn">
             <Plus size={13} /> Tambah
           </button>
@@ -87,9 +87,12 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
         </form>
       )}
 
-      {goals.length === 0 ? (
-        <div className="goal-empty">
-          Belum ada target tabungan yang ditetapkan.
+      {!isAdding && goals.length === 0 ? (
+        <div className="goal-inline-empty">
+          <span className="goal-empty-text">Belum ada target tabungan.</span>
+          <button onClick={() => setIsAdding(true)} className="goal-create-btn">
+            <Plus size={12} /> Buat tujuan
+          </button>
         </div>
       ) : (
         <div className="goal-list">
@@ -147,7 +150,17 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
               onClick={() => setExpanded(true)}
               className="goals-expand-btn"
             >
-              Lihat {hiddenCount} lainnya
+              Lihat {hiddenCount} lainnya ↓
+            </button>
+          )}
+
+          {expanded && hiddenCount > 0 && (
+            <button 
+              type="button" 
+              onClick={() => setExpanded(false)}
+              className="goals-expand-btn"
+            >
+              Tampilkan lebih sedikit ↑
             </button>
           )}
         </div>

@@ -27,9 +27,77 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export default function TrendChart({ data }) {
-  if (!data || data.length === 0) return null;
+export default function TrendChart({ data = [], periodLabel = '' }) {
+  // Empty state: no data at all
+  if (!data || data.length === 0) {
+    return (
+      <div className="trend-chart-section">
+        <div className="chart-header">
+          <div className="section-title">Arus kas</div>
+        </div>
+        <div className="trend-empty">
+          Belum ada data arus kas.
+        </div>
+      </div>
+    );
+  }
 
+  // Single month state: compact comparison summary with derived spending ratio (no duplicate balance)
+  if (data.length === 1) {
+    const item = data[0];
+    const monthIncome = item.income || 0;
+    const monthExpense = item.expense || 0;
+    const maxVal = Math.max(monthIncome, monthExpense, 1);
+    const incomeBarPct = Math.round((monthIncome / maxVal) * 100);
+    const expenseBarPct = Math.round((monthExpense / maxVal) * 100);
+
+    let ratioText = '';
+    if (monthIncome > 0) {
+      const ratioPct = Math.round((monthExpense / monthIncome) * 100);
+      ratioText = `${ratioPct}% dari pemasukan`;
+    } else if (monthExpense > 0) {
+      ratioText = 'Belum ada pemasukan periode ini';
+    } else {
+      ratioText = 'Belum ada transaksi';
+    }
+
+    return (
+      <div className="trend-chart-section trend-chart-section--compact">
+        <div className="chart-header">
+          <div className="section-title">Arus kas</div>
+          <span className="chart-period-text">{periodLabel || item.month}</span>
+        </div>
+        <div className="trend-single-container">
+          <div className="trend-single-row">
+            <div className="trend-single-meta">
+              <span className="trend-single-label">Pemasukan</span>
+              <span className="trend-single-val trend-single-val--income">+{formatRupiah(monthIncome)}</span>
+            </div>
+            <div className="cat-bar-track">
+              <div className="cat-bar-fill cat-bar-fill--income" style={{ width: `${Math.max(incomeBarPct, 2)}%` }} />
+            </div>
+          </div>
+
+          <div className="trend-single-row">
+            <div className="trend-single-meta">
+              <span className="trend-single-label">Pengeluaran</span>
+              <span className="trend-single-val trend-single-val--expense">-{formatRupiah(monthExpense)}</span>
+            </div>
+            <div className="cat-bar-track">
+              <div className="cat-bar-fill cat-bar-fill--muted" style={{ width: `${Math.max(expenseBarPct, 2)}%` }} />
+            </div>
+          </div>
+
+          <div className="trend-single-footer">
+            <span className="trend-single-label">Rasio pengeluaran</span>
+            <span className="trend-single-ratio">{ratioText}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2+ months state: Restrained LineChart
   return (
     <div className="trend-chart-section">
       <div className="chart-header">
@@ -79,8 +147,8 @@ export default function TrendChart({ data }) {
               name="Pemasukan"
               stroke="var(--income)"
               strokeWidth={2}
-              dot={data.length === 1 ? { r: 3, fill: 'var(--income)' } : false}
-              activeDot={{ r: 3, strokeWidth: 0, fill: 'var(--income)' }}
+              dot={false}
+              activeDot={{ r: 3.5, strokeWidth: 0, fill: 'var(--income)' }}
             />
             <Line
               type="monotone"
@@ -88,8 +156,8 @@ export default function TrendChart({ data }) {
               name="Pengeluaran"
               stroke="var(--expense)"
               strokeWidth={2}
-              dot={data.length === 1 ? { r: 3, fill: 'var(--expense)' } : false}
-              activeDot={{ r: 3, strokeWidth: 0, fill: 'var(--expense)' }}
+              dot={false}
+              activeDot={{ r: 3.5, strokeWidth: 0, fill: 'var(--expense)' }}
             />
           </LineChart>
         </ResponsiveContainer>
