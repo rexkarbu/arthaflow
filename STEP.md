@@ -15,3 +15,9 @@
 8. Polish semua keadaan, bukan hanya happy path. Coba kondisi Rp0, belum ada budget, 200 transaksi, kategori panjang, angka Rp999.999.999, goal selesai, network/error database, loading, mobile keyboard. Company-grade UI terasa berkualitas terutama ketika data “aneh”, bukan hanya screenshot ideal.
 
 9. Tambahkan trust layer. Untuk aplikasi keuangan ini penting: halaman Settings, export/backup data, session/logout yang jelas, format tanggal konsisten, destructive confirmation yang baik, dan microcopy yang tenang. Jangan menambah badge “Secure” palsu—buat perilakunya memang trustworthy.
+
+10. Perbaiki semua UX kecil yang saya temukan saat audit.
+
+Tolong lakukan hal berikut (ini adalah koreksi bug dan polish UX, bukan penambahan fitur):
+
+Halaman Transaksi
