@@ -102,7 +102,25 @@ Accessible via authenticated endpoint **`/api/export-csv`** from `/pengaturan`.
 
 ---
 
-## 5. Date Formatting Standards (`lib/format.js`)
+## 5. Monthly Financial PDF Report (`/api/report-pdf`)
+
+Accessible via authenticated endpoint **`/api/report-pdf?month=YYYY-MM`** from `/pengaturan`.
+
+### Document Standards
+1. **Format**: Standard A4 Portrait, pure white background (`#ffffff`), near-black typography (`#141916`), and restrained Graphite Sage accents.
+2. **Scope**: One user-selected month containing:
+   - **Ringkasan Keuangan**: Pemasukan, Pengeluaran, Net Cash Flow.
+   - **Budget Bulanan**: Batas budget, pengeluaran digunakan, dan sisa / kelebihan.
+   - **Pengeluaran Berdasarkan Kategori**: Expense categories ranked by spending amount with percentage shares.
+   - **Budget Kategori**: Limit, used, and remaining amounts for configured category budgets.
+   - **Daftar Transaksi**: Complete monthly ledger with text-wrapped descriptions and multi-page pagination.
+3. **Multi-Page & Footers**: Automatic page continuation with running headers and `ArthaFlow · Halaman X dari Y` on all pages.
+4. **Exclusions**: Independent multi-month Goals and AI commentary are excluded from monthly snapshot reports to maintain factual integrity.
+5. **Security**: Server-side authenticated generation with `Cache-Control: private, no-store`.
+
+---
+
+## 6. Date Formatting Standards (`lib/format.js`)
 
 | Format Level | Function | Example Output | Usage Context |
 | :--- | :--- | :--- | :--- |

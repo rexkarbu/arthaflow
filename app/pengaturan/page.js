@@ -1,6 +1,7 @@
 import { getAuthSession, getCurrentUser, logout } from '@/app/actions';
 import LoginForm from '@/components/LoginForm';
-import { Download, LogOut, ShieldCheck, User, Database, Info, FileSpreadsheet } from 'lucide-react';
+import PdfExportControl from '@/components/PdfExportControl';
+import { Download, LogOut, FileSpreadsheet } from 'lucide-react';
 
 export const metadata = {
   title: 'Pengaturan — ArthaFlow',
@@ -99,6 +100,18 @@ export default async function PengaturanPage() {
                   <FileSpreadsheet size={13} style={{ marginRight: '6px' }} />
                   Unduh semua transaksi CSV
                 </a>
+              </div>
+            </div>
+
+            <div className="pengaturan-row">
+              <div className="pengaturan-row-info">
+                <span className="pengaturan-label">Laporan keuangan (PDF)</span>
+                <span className="pengaturan-desc">
+                  Unduh ringkasan pemasukan, pengeluaran, budget, kategori, dan riwayat transaksi untuk bulan yang dipilih.
+                </span>
+              </div>
+              <div className="pengaturan-row-btn">
+                <PdfExportControl />
               </div>
             </div>
           </div>
