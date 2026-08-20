@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { X, Plus } from 'lucide-react';
 import { addGoal, deleteGoal } from '@/app/actions';
 import { toast } from 'sonner';
@@ -11,10 +12,13 @@ function formatRupiah(n) {
   }).format(n);
 }
 
-export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
+export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'preview', currentMonth = '' }) {
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+
+  const isPreview = mode === 'preview';
+  const monthQuery = currentMonth ? `?month=${currentMonth}` : '';
+  const visibleGoals = isPreview ? goals.slice(0, 2) : goals;
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -42,21 +46,29 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
     }
   }
 
-  const visibleGoals = expanded ? goals : goals.slice(0, 2);
-  const hiddenCount = goals.length - 2;
-
   return (
     <div className="goals-section">
-      <div className="goals-header">
-        <div className="section-title">Tujuan</div>
-        {!isAdding && goals.length > 0 && (
-          <button onClick={() => setIsAdding(true)} className="goals-add-btn">
-            <Plus size={13} /> Tambah
-          </button>
-        )}
-      </div>
+      {/* Overview Preview Header: Section title + Kelola tujuan → */}
+      {isPreview && (
+        <div className="goals-header">
+          <div className="section-title">Tujuan</div>
+          <Link href={`/tujuan${monthQuery}`} className="txn-view-all-link">
+            Kelola tujuan →
+          </Link>
+        </div>
+      )}
 
-      {isAdding && (
+      {/* Full Mode Header: '+ Tambah tujuan' button */}
+      {!isPreview && !isAdding && goals.length > 0 && (
+        <div className="goals-full-top">
+          <button onClick={() => setIsAdding(true)} className="goals-add-btn">
+            <Plus size={13} /> Tambah tujuan
+          </button>
+        </div>
+      )}
+
+      {/* Add Goal Form (Full Mode) */}
+      {!isPreview && isAdding && (
         <form onSubmit={handleAdd} className="goal-form">
           <div className="field">
             <input
@@ -87,12 +99,15 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
         </form>
       )}
 
-      {!isAdding && goals.length === 0 ? (
+      {/* Empty State */}
+      {goals.length === 0 ? (
         <div className="goal-inline-empty">
           <span className="goal-empty-text">Belum ada target tabungan.</span>
-          <button onClick={() => setIsAdding(true)} className="goal-create-btn">
-            <Plus size={12} /> Buat tujuan
-          </button>
+          {!isPreview && !isAdding && (
+            <button onClick={() => setIsAdding(true)} className="goal-create-btn">
+              <Plus size={12} /> Tambah tujuan
+            </button>
+          )}
         </div>
       ) : (
         <div className="goal-list">
@@ -107,14 +122,22 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
                   <span className={`goal-name ${isAchieved ? 'goal-name--achieved' : ''}`}>
                     {goal.name}
                   </span>
-                  <form action={async () => {
-                    await deleteGoal(goal.id);
-                    toast.success('Target dihapus');
-                  }}>
-                    <button type="submit" className="goal-delete-btn" title="Hapus target" aria-label="Hapus target">
-                      <X size={13} />
-                    </button>
-                  </form>
+                  {/* Delete button only rendered in full mode on /tujuan */}
+                  {!isPreview && (
+                    <form action={async () => {
+                      await deleteGoal(goal.id);
+                      toast.success('Target dihapus');
+                    }}>
+                      <button
+                        type="submit"
+                        className="goal-delete-btn"
+                        title={`Hapus target ${goal.name}`}
+                        aria-label={`Hapus target ${goal.name}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    </form>
+                  )}
                 </div>
                 
                 <div className="goal-amounts">
@@ -143,26 +166,6 @@ export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
               </div>
             );
           })}
-          
-          {!expanded && hiddenCount > 0 && (
-            <button 
-              type="button" 
-              onClick={() => setExpanded(true)}
-              className="goals-expand-btn"
-            >
-              Lihat {hiddenCount} lainnya ↓
-            </button>
-          )}
-
-          {expanded && hiddenCount > 0 && (
-            <button 
-              type="button" 
-              onClick={() => setExpanded(false)}
-              className="goals-expand-btn"
-            >
-              Tampilkan lebih sedikit ↑
-            </button>
-          )}
         </div>
       )}
     </div>

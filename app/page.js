@@ -1,12 +1,10 @@
 import { getExpenses, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals } from './actions';
 import Link from 'next/link';
+import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
 import BudgetBar from '@/components/BudgetBar';
 import TrendChart from '@/components/TrendChart';
-import MonthPicker from '@/components/MonthPicker';
 import LoginForm from '@/components/LoginForm';
-import LogoutButton from '@/components/LogoutButton';
-import ThemeToggle from '@/components/ThemeToggle';
 import TransactionDialog from '@/components/TransactionDialog';
 import FinancialGoals from '@/components/FinancialGoals';
 import './globals.css';
@@ -373,19 +371,7 @@ export default async function Home(props) {
   }
 
   return (
-    <div className="wrap">
-      {/* Site Header */}
-      <header className="site-header">
-        <div className="site-brand">
-          <h1 className="site-title">ArthaFlow<span>.</span></h1>
-        </div>
-        <div className="site-header-right">
-          <MonthPicker currentMonth={selectedMonth} />
-          <ThemeToggle />
-          <LogoutButton />
-        </div>
-      </header>
-
+    <AppShell currentMonth={selectedMonth}>
       {/* Financial Overview (Unified Composition: Balance + Details + Budget) */}
       <div className="fin-overview">
         <div className="fin-summary">
@@ -470,7 +456,7 @@ export default async function Home(props) {
       </div>
 
       {/* Financial Goals (Monarch Influence) */}
-      <FinancialGoals goals={goals} totalSavings={totalSavings} />
+      <FinancialGoals goals={goals} totalSavings={totalSavings} mode="preview" currentMonth={selectedMonth} />
 
       {/* Transactions Overview Preview (Max 10 rows, simplified dates, context-aware footer link) */}
       <div className="transactions-container">
@@ -505,7 +491,6 @@ export default async function Home(props) {
           </div>
         )}
       </div>
-      
-    </div>
+    </AppShell>
   );
 }

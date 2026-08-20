@@ -8,27 +8,32 @@ import { toast } from 'sonner';
 export default function LoginForm() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const router = useRouter();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage('');
 
     const fd = new FormData(e.currentTarget);
 
     if (isRegister) {
       const res = await register(fd);
       if (res?.error) {
+        setErrorMessage(res.error);
         toast.error(res.error);
       } else {
-        toast.success(res.message || 'Akun berhasil dibuat. Silakan login.');
+        toast.success(res?.message || 'Akun berhasil dibuat. Silakan login.');
         setIsRegister(false);
+        setErrorMessage('');
         e.currentTarget.reset();
       }
       setLoading(false);
     } else {
       const res = await login(fd);
       if (res?.error) {
+        setErrorMessage(res.error);
         toast.error(res.error);
         setLoading(false);
       } else {
@@ -40,64 +45,97 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="login-container">
-      <div className="login-wrapper">
-        <div className="login-left">
-          <div className="login-brand">
+    <div className="auth-page">
+      <div className="auth-shell">
+        {/* Top Wordmark & Structural Rule */}
+        <div className="auth-header">
+          <div className="auth-brand">
             ArthaFlow<span>.</span>
           </div>
-          <h1 className="login-tagline">
-            Keuangan pribadi,<br />lebih jelas.
-          </h1>
-          <p className="login-desc">
-            Pantau pemasukan, pengeluaran,<br />budget, dan tujuan keuangan.
-          </p>
         </div>
-        
-        <div className="login-right">
-          <div className="login-mobile-brand">
-            ArthaFlow<span>.</span>
+        <div className="auth-divider" />
+
+        {/* Asymmetric Content Layout */}
+        <div className="auth-content">
+          {/* Left Context Column (Desktop) */}
+          <div className="auth-intro">
+            <h1 className="auth-headline">
+              Keuangan pribadi,<br />lebih jelas.
+            </h1>
+            <div className="auth-signature-line" />
+            <div className="auth-copy">
+              <p>Catat apa yang masuk.</p>
+              <p>Pahami ke mana uang pergi.</p>
+              <p>Jaga rencana tetap berjalan.</p>
+            </div>
           </div>
-          <h2 className="login-form-title">
-            {isRegister ? 'Buat akun baru' : 'Masuk ke ArthaFlow'}
-          </h2>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="field">
-              <label className="label">Username</label>
-              <input
-                type="text"
-                name="username"
-                className="input"
-                placeholder="Username"
-                required
-                autoFocus
-              />
-            </div>
-            <div className="field" style={{ marginBottom: '1.25rem' }}>
-              <label className="label">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="input"
-                placeholder="Password"
-                required
-              />
-            </div>
 
-            <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Memproses...' : (isRegister ? 'Daftar' : 'Masuk')}
-            </button>
-          </form>
+          {/* Right Form Column */}
+          <div className="auth-form-zone">
+            <div className="auth-form-wrap">
+              <div className="auth-form-header">
+                <h2 className="auth-form-title">
+                  {isRegister ? 'Buat akun' : 'Masuk'}
+                </h2>
+                <p className="auth-form-desc">
+                  {isRegister ? 'Mulai gunakan ArthaFlow.' : 'Gunakan akun ArthaFlow Anda.'}
+                </p>
+              </div>
 
-          <div className="login-switch">
-            {isRegister ? 'Sudah punya akun? ' : 'Belum punya akun? '}
-            <button
-              type="button"
-              onClick={() => setIsRegister(!isRegister)}
-            >
-              {isRegister ? 'Masuk' : 'Buat akun baru'}
-            </button>
+              {errorMessage && (
+                <div className="auth-error" role="alert">
+                  {errorMessage}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="auth-form">
+                <div className="auth-field">
+                  <label htmlFor="auth-username" className="auth-label">Username</label>
+                  <input
+                    id="auth-username"
+                    type="text"
+                    name="username"
+                    className="input auth-input"
+                    placeholder="Username"
+                    required
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                  />
+                </div>
+                <div className="auth-field">
+                  <label htmlFor="auth-password" className="auth-label">Password</label>
+                  <input
+                    id="auth-password"
+                    type="password"
+                    name="password"
+                    className="input auth-input"
+                    placeholder="Password"
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="btn-submit auth-submit" disabled={loading}>
+                  {loading ? 'Memproses...' : (isRegister ? 'Buat akun' : 'Masuk')}
+                </button>
+              </form>
+
+              <div className="auth-switch">
+                <span className="auth-switch-text">
+                  {isRegister ? 'Sudah punya akun? ' : 'Belum punya akun? '}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRegister(!isRegister);
+                    setErrorMessage('');
+                  }}
+                  className="auth-switch-btn"
+                >
+                  {isRegister ? 'Masuk' : 'Buat akun'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

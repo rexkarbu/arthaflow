@@ -3,13 +3,19 @@ export default function Loading() {
     <div className="wrap" style={{ pointerEvents: 'none' }}>
       {/* Header Skeleton */}
       <header className="site-header">
-        <div>
-          <div className="skeleton" style={{ width: '110px', height: '22px' }}></div>
+        <div className="site-header-left">
+          <div className="skeleton" style={{ width: '100px', height: '20px' }}></div>
+          <div className="desktop-nav" style={{ gap: '1.25rem' }}>
+            <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
+            <div className="skeleton" style={{ width: '60px', height: '14px' }}></div>
+            <div className="skeleton" style={{ width: '50px', height: '14px' }}></div>
+            <div className="skeleton" style={{ width: '50px', height: '14px' }}></div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-          <div className="skeleton" style={{ width: '130px', height: '30px', borderRadius: '6px' }}></div>
-          <div className="skeleton" style={{ width: '30px', height: '30px', borderRadius: '6px' }}></div>
-          <div className="skeleton" style={{ width: '30px', height: '30px', borderRadius: '6px' }}></div>
+        <div className="site-header-right">
+          <div className="skeleton" style={{ width: '130px', height: '28px', borderRadius: '6px' }}></div>
+          <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '6px' }}></div>
+          <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '6px' }}></div>
         </div>
       </header>
 

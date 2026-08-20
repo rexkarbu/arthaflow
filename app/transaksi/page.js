@@ -1,10 +1,7 @@
 import { getExpenses, getAuthSession, seedRecurringExpenses, getCategories } from '@/app/actions';
-import Link from 'next/link';
+import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
-import MonthPicker from '@/components/MonthPicker';
 import LoginForm from '@/components/LoginForm';
-import LogoutButton from '@/components/LogoutButton';
-import ThemeToggle from '@/components/ThemeToggle';
 import TransactionDialog from '@/components/TransactionDialog';
 import '@/app/globals.css';
 
@@ -63,28 +60,7 @@ export default async function TransactionsPage(props) {
     }));
 
   return (
-    <div className="wrap">
-      {/* Header */}
-      <header className="site-header">
-        <div className="site-brand">
-          <Link href={selectedMonth ? `/?month=${selectedMonth}` : '/'} className="site-title" style={{ textDecoration: 'none' }}>
-            ArthaFlow<span>.</span>
-          </Link>
-        </div>
-        <div className="site-header-right">
-          <MonthPicker currentMonth={selectedMonth} />
-          <ThemeToggle />
-          <LogoutButton />
-        </div>
-      </header>
-
-      {/* Back Navigation to Overview */}
-      <div className="txn-back-nav">
-        <Link href={selectedMonth ? `/?month=${selectedMonth}` : '/'} className="back-link">
-          ← Overview
-        </Link>
-      </div>
-
+    <AppShell currentMonth={selectedMonth}>
       {/* Page Header */}
       <div className="txn-page-header">
         <div>
@@ -104,6 +80,6 @@ export default async function TransactionsPage(props) {
         incomeCategories={incomeCategories}
         mode="full"
       />
-    </div>
+    </AppShell>
   );
 }
