@@ -3,12 +3,8 @@
 import { useState, useTransition } from 'react';
 import { setBudget } from '@/app/actions';
 import { Plus } from 'lucide-react';
-
-function formatRupiah(n) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
-  }).format(n);
-}
+import CurrencyInput from './CurrencyInput';
+import { formatRupiah, parseCurrency } from '@/lib/currency';
 
 export default function BudgetBar({ month, monthLabel, budget, spent }) {
   const [editing, setEditing] = useState(false);
@@ -22,7 +18,7 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
   const isDanger = hasBudget && spent > budget;
 
   async function formAction(fd) {
-    const amount = parseFloat(fd.get('budget'));
+    const amount = parseCurrency(fd.get('budget'));
     if (isNaN(amount) || amount <= 0) return;
 
     startTransition(async () => {
@@ -47,14 +43,12 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
       {editing && (
         <form action={formAction} className="budget-form">
           <input type="hidden" name="month" value={month} />
-          <input
-            type="number"
+          <CurrencyInput
             name="budget"
             className="budget-input"
-            placeholder="contoh: 5000000"
+            placeholder="contoh: 5.000.000"
             value={inputVal}
-            onChange={e => setInputVal(e.target.value)}
-            min="1"
+            onChange={(raw, formatted) => setInputVal(formatted)}
             required
             autoFocus
           />

@@ -4,6 +4,14 @@ import db, { dbReady } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { parseCurrency } from '@/lib/currency';
+import {
+  sanitizeText,
+  sanitizeDescription,
+  sanitizeCategoryName,
+  sanitizeGoalName,
+  sanitizeUsername
+} from '@/lib/formSanitizer';
 
 // --- AUTH & SESSIONS ---
 
@@ -42,11 +50,15 @@ export async function getAuthSession() {
 }
 
 export async function register(formData) {
-  const username = formData.get('username')?.trim();
+  const username = sanitizeUsername(formData.get('username'));
   const password = formData.get('password');
 
-  if (!username || !password || password.length < 4) {
-    return { error: 'Username dan password (min 4 karakter) diperlukan.' };
+  if (!username || username.length < 3) {
+    return { error: 'Username minimal 3 karakter (huruf, angka, titik, strip).' };
+  }
+
+  if (!password || password.length < 4) {
+    return { error: 'Password minimal 4 karakter.' };
   }
 
   const existingRes = await db.execute({
@@ -89,7 +101,7 @@ export async function register(formData) {
 }
 
 export async function login(formData) {
-  const username = formData.get('username')?.trim();
+  const username = sanitizeUsername(formData.get('username'));
   const password = formData.get('password');
 
   const res = await db.execute({
@@ -160,15 +172,15 @@ export async function addExpense(formData) {
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
 
-  const amount = parseFloat(formData.get('amount'));
-  const description = formData.get('description');
-  const type = formData.get('type') || 'expense';
-  const category = formData.get('category') || 'Lainnya';
-  const notes = formData.get('notes') || '';
+  const amount = parseCurrency(formData.get('amount'));
+  const description = sanitizeDescription(formData.get('description'));
+  const type = formData.get('type') === 'income' ? 'income' : 'expense';
+  const category = sanitizeCategoryName(formData.get('category'));
+  const notes = sanitizeText(formData.get('notes'), 255);
   const isRecurring = formData.get('is_recurring') === 'on' ? 1 : 0;
   const date = new Date().toISOString();
 
-  if (isNaN(amount) || !description) throw new Error('Invalid input');
+  if (amount <= 0 || !description) throw new Error('Invalid input');
 
   await db.execute({
     sql: 'INSERT INTO expenses (user_id, amount, description, date, category, notes, is_recurring, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -193,14 +205,14 @@ export async function updateExpense(formData) {
   if (!userId) throw new Error('Unauthorized');
 
   const id = parseInt(formData.get('id'), 10);
-  const amount = parseFloat(formData.get('amount'));
-  const description = formData.get('description');
-  const type = formData.get('type') || 'expense';
-  const category = formData.get('category') || 'Lainnya';
-  const notes = formData.get('notes') || '';
+  const amount = parseCurrency(formData.get('amount'));
+  const description = sanitizeDescription(formData.get('description'));
+  const type = formData.get('type') === 'income' ? 'income' : 'expense';
+  const category = sanitizeCategoryName(formData.get('category'));
+  const notes = sanitizeText(formData.get('notes'), 255);
   const isRecurring = formData.get('is_recurring') === 'on' ? 1 : 0;
 
-  if (isNaN(id) || isNaN(amount) || !description) throw new Error('Invalid input');
+  if (isNaN(id) || amount <= 0 || !description) throw new Error('Invalid input');
 
   await db.execute({
     sql: 'UPDATE expenses SET amount = ?, description = ?, category = ?, notes = ?, is_recurring = ?, type = ? WHERE id = ? AND user_id = ?',
@@ -277,7 +289,7 @@ export async function setBudget(formData) {
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
 
-  const amount = parseFloat(formData.get('budget'));
+  const amount = parseCurrency(formData.get('budget'));
   const month  = formData.get('month');
 
   if (isNaN(amount) || amount <= 0 || !month) return;
@@ -318,8 +330,10 @@ export async function addGoal(formData) {
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
 
-  const name = formData.get('name');
-  const target_amount = parseFloat(formData.get('target_amount'));
+  const name = sanitizeGoalName(formData.get('name'));
+  const target_amount = parseCurrency(formData.get('target_amount'));
+
+  if (!name || target_amount <= 0) return;
 
   await db.execute({
     sql: 'INSERT INTO goals (user_id, name, target_amount) VALUES (?, ?, ?)',
@@ -391,10 +405,10 @@ export async function addCategory(formData) {
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
 
-  const name = formData.get('name')?.trim();
-  const type = formData.get('type') || 'expense';
+  const name = sanitizeCategoryName(formData.get('name'));
+  const type = formData.get('type') === 'income' ? 'income' : 'expense';
 
-  if (!name) return;
+  if (!name || name === 'Lainnya') return;
 
   try {
     await db.execute({

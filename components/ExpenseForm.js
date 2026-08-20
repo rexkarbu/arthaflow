@@ -4,6 +4,8 @@ import { useState, useRef } from 'react';
 import { addExpense, addCategory } from '@/app/actions';
 import { Repeat } from 'lucide-react';
 import { toast } from 'sonner';
+import CurrencyInput from './CurrencyInput';
+import { parseCurrency } from '@/lib/currency';
 
 export default function ExpenseForm({ expenseCategories = [], incomeCategories = [], onSuccess }) {
   const [type, setType] = useState('expense');
@@ -19,14 +21,19 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
     const fd = new FormData(form);
 
     const MAX_AMOUNT = 999_999_999_999;
-    const amount = parseFloat(fd.get('amount'));
-    if (amount > MAX_AMOUNT) {
+    const amount = parseCurrency(fd.get('amount'));
+    if (amount <= 0 || amount > MAX_AMOUNT) {
       toast.error('Jumlah maksimal adalah Rp 999.999.999.999');
-      setAmountError('Jumlah maksimal adalah Rp 999.999.999.999');
+      setAmountError('Jumlah harus lebih besar dari 0 dan maksimal Rp 999.999.999.999');
       setLoading(false);
       return;
     }
-    setAmountError('');
+    const desc = fd.get('description')?.trim();
+    if (!desc) {
+      toast.error('Keterangan transaksi tidak boleh kosong');
+      setLoading(false);
+      return;
+    }
 
     if (showNewCat) {
       const newCat = fd.get('new_category')?.trim();
@@ -83,16 +90,14 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
         <label htmlFor="amount" className="label">Jumlah</label>
         <div className="amount-field">
           <span className="amount-prefix">Rp</span>
-          <input
-            type="number"
+          <CurrencyInput
             id="amount"
             name="amount"
             className="input amount-input"
             placeholder="0"
-            min="1"
-            max="999999999999"
             onChange={() => setAmountError('')}
             required
+            autoFocus
           />
         </div>
         {amountError && (

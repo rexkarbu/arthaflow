@@ -5,12 +5,8 @@ import Link from 'next/link';
 import { X, Plus } from 'lucide-react';
 import { addGoal, deleteGoal } from '@/app/actions';
 import { toast } from 'sonner';
-
-function formatRupiah(n) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
-  }).format(n);
-}
+import CurrencyInput from './CurrencyInput';
+import { formatRupiah, parseCurrency } from '@/lib/currency';
 
 export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'preview', currentMonth = '' }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -26,7 +22,14 @@ export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'p
 
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const amount = parseFloat(fd.get('target_amount'));
+    const name = fd.get('name')?.trim();
+    const amount = parseCurrency(fd.get('target_amount'));
+
+    if (!name) {
+      toast.error('Nama tujuan tabungan tidak boleh kosong');
+      setLoading(false);
+      return;
+    }
 
     if (amount <= 0 || amount > 999_999_999_999) {
       toast.error('Jumlah target tidak valid');
@@ -81,13 +84,11 @@ export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'p
             />
           </div>
           <div className="goal-form-row">
-            <input
-              type="number"
+            <CurrencyInput
               name="target_amount"
               className="input"
               placeholder="Target dana (Rp)"
               required
-              min="1"
             />
             <button type="submit" className="btn-submit btn-submit--sm" disabled={loading}>
               {loading ? '...' : 'Simpan'}

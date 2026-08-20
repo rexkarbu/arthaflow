@@ -2,7 +2,7 @@
 
 2.Buat navigation/product shell yang sebenarnya. Bukan sidebar SaaS besar. Cukup navigation ringkas desktop seperti Overview · Transaksi · Budget · Tujuan, sementara mobile bisa bottom navigation. Ini membuat ArthaFlow terasa seperti produk dengan beberapa workflow, bukan satu halaman panjang.
 
-3. Buat halaman Transaksi dedicated. Di sinilah search/filter menjadi serius: bulan, kategori, tipe pemasukan/pengeluaran, recurring, sorting, 25–50 transaksi per halaman, CSV export, edit/delete. Dashboard tetap simpel. Copilot bahkan menambahkan filtering, transaction metrics, split transaction flow, dan keyboard shortcuts ke web transaction experience mereka.
+3. Buat halaman Transaksi dedicated. Di sinilah search/filter menjadi serius: bulan, kategori, tipe pemasukan/pengeluaran, recurring, sorting, 25–50 transaksi per halaman.
 
 4. Naikkan Budget menjadi fitur utama. Bukan cuma satu progress bar. Buat halaman Budget dengan total bulanan + budget per kategori. Contohnya Makanan 720k / 1jt, Transportasi 430k / 700k. Dashboard cukup menunjukkan “Rp1,39 jt masih tersedia”.
 
