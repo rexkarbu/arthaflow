@@ -7,6 +7,7 @@ import { addGoal, deleteGoal } from '@/app/actions';
 import { toast } from 'sonner';
 import CurrencyInput from './CurrencyInput';
 import GoalFundDialog from './GoalFundDialog';
+import ConfirmDialog from './ConfirmDialog';
 import { formatRupiah, parseCurrency } from '@/lib/currency';
 
 export default function FinancialGoals({ goals = [], mode = 'preview', currentMonth = '' }) {
@@ -14,6 +15,8 @@ export default function FinancialGoals({ goals = [], mode = 'preview', currentMo
   const [loading, setLoading] = useState(false);
   const [activeFundGoal, setActiveFundGoal] = useState(null);
   const [fundDialogMode, setFundDialogMode] = useState('add');
+  const [deletingGoal, setDeletingGoal] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isPreview = mode === 'preview';
   const monthQuery = currentMonth ? `?month=${currentMonth}` : '';
@@ -38,7 +41,7 @@ export default function FinancialGoals({ goals = [], mode = 'preview', currentMo
     }
 
     if (amount <= 0 || amount > 999_999_999_999) {
-      toast.error('Jumlah target tidak valid');
+      toast.error('Jumlah target harus antara Rp 1 - Rp 999.999.999.999');
       setLoading(false);
       return;
     }
@@ -55,16 +58,18 @@ export default function FinancialGoals({ goals = [], mode = 'preview', currentMo
     }
   }
 
-  async function handleDelete(goal) {
-    if (!window.confirm(`Hapus tujuan "${goal.name}"?\nDana yang dialokasikan ke tujuan ini tidak akan lagi tercatat sebagai bagian dari tujuan.`)) {
-      return;
-    }
+  async function handleConfirmDelete() {
+    if (!deletingGoal) return;
+    setIsDeleting(true);
 
     try {
-      await deleteGoal(goal.id);
-      toast.success(`Target "${goal.name}" berhasil dihapus`);
+      await deleteGoal(deletingGoal.id);
+      toast.success(`Target "${deletingGoal.name}" berhasil dihapus`);
+      setDeletingGoal(null);
     } catch (err) {
       toast.error(err?.message || 'Gagal menghapus target.');
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -173,7 +178,7 @@ export default function FinancialGoals({ goals = [], mode = 'preview', currentMo
                   {!isPreview && (
                     <button
                       type="button"
-                      onClick={() => handleDelete(goal)}
+                      onClick={() => setDeletingGoal(goal)}
                       className="goal-delete-btn"
                       title={`Hapus target ${goal.name}`}
                       aria-label={`Hapus target ${goal.name}`}
@@ -260,6 +265,19 @@ export default function FinancialGoals({ goals = [], mode = 'preview', currentMo
           onClose={closeFundDialog}
         />
       )}
+
+      {/* Destructive Confirm Delete Modal */}
+      <ConfirmDialog
+        isOpen={!!deletingGoal}
+        title={`Hapus tujuan "${deletingGoal?.name}"?`}
+        description="Riwayat dana yang dialokasikan ke tujuan ini juga akan dihapus. Transaksi, budget, dan analisis tidak berubah. Tindakan ini tidak dapat dibatalkan."
+        confirmLabel="Hapus tujuan"
+        cancelLabel="Batal"
+        isDestructive={true}
+        isPending={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingGoal(null)}
+      />
     </div>
   );
 }

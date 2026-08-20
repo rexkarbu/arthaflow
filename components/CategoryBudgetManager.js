@@ -1,9 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
 import { setCategoryBudget, deleteCategoryBudget } from '@/app/actions';
 import { formatRupiah, parseCurrency } from '@/lib/currency';
 import CurrencyInput from './CurrencyInput';
+import ConfirmDialog from './ConfirmDialog';
 
 function formatCompact(amount) {
   if (amount >= 1_000_000) {
@@ -21,6 +22,7 @@ function CategoryBudgetRow({ month, category, budget, spent, onEditStart, isEdit
   const [inputVal, setInputVal] = useState(budget ? String(budget) : '');
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const hasBudget = budget != null;
   const pct = hasBudget && budget > 0 ? (spent / budget) * 100 : 0;
@@ -41,12 +43,13 @@ function CategoryBudgetRow({ month, category, budget, spent, onEditStart, isEdit
     });
   }
 
-  async function handleDelete() {
+  async function handleConfirmDelete() {
     const fd = new FormData();
     fd.append('month', month);
     fd.append('category', category);
     startDeleteTransition(async () => {
       await deleteCategoryBudget(fd);
+      setShowConfirm(false);
     });
   }
 
@@ -61,7 +64,7 @@ function CategoryBudgetRow({ month, category, budget, spent, onEditStart, isEdit
               <button
                 type="button"
                 className="cat-budget-action-btn cat-budget-action-btn--danger"
-                onClick={handleDelete}
+                onClick={() => setShowConfirm(true)}
                 disabled={isDeleting}
               >{isDeleting ? '…' : 'Hapus'}</button>
             </>
@@ -71,6 +74,18 @@ function CategoryBudgetRow({ month, category, budget, spent, onEditStart, isEdit
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showConfirm}
+        title={`Hapus budget kategori "${category}"?`}
+        description="Hanya batas budget kategori ini yang akan dihapus. Transaksi pada kategori ini tetap tersimpan dan tidak terhapus."
+        confirmLabel="Hapus budget"
+        cancelLabel="Batal"
+        isDestructive={true}
+        isPending={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowConfirm(false)}
+      />
 
       {!isEditing && (
         <>

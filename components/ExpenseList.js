@@ -4,7 +4,17 @@ import { useState, useMemo, useTransition, useEffect, useRef } from 'react';
 import { Trash2, Search, X, Edit2, Check, Download, Repeat, ChevronLeft, ChevronRight } from 'lucide-react';
 import { deleteExpense, updateExpense } from '@/app/actions';
 import CurrencyInput from './CurrencyInput';
+import ConfirmDialog from './ConfirmDialog';
 import { formatRupiah } from '@/lib/currency';
+
+function escapeCsvCell(val) {
+  if (val === null || val === undefined) return '""';
+  let str = String(val);
+  if (/^[=+\-@]/.test(str)) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
 
 export default function ExpenseList({
   expenses = [],
@@ -21,6 +31,8 @@ export default function ExpenseList({
   const [currentPage, setCurrentPage] = useState(1);
   const [activeRowIndex, setActiveRowIndex] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [deletingExpense, setDeletingExpense] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const searchInputRef = useRef(null);
@@ -62,7 +74,7 @@ export default function ExpenseList({
     });
 
     // Sort pipeline
-    result.sort((a, b) => {
+    return result.sort((a, b) => {
       if (sortBy === 'date_desc') {
         const diff = new Date(b.date) - new Date(a.date);
         return diff !== 0 ? diff : b.id - a.id;
@@ -81,9 +93,7 @@ export default function ExpenseList({
       }
       return 0;
     });
-
-    return result;
-  }, [expenses, query, typeFilter, activeCat, recurringFilter, sortBy, isPreview]);
+  }, [expenses, isPreview, query, typeFilter, activeCat, recurringFilter, sortBy]);
 
   // 2. Metrics calculation across entire filtered dataset
   const filteredMetrics = useMemo(() => {
@@ -235,13 +245,33 @@ export default function ExpenseList({
     });
   }
 
+  async function handleConfirmDelete() {
+    if (!deletingExpense || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteExpense(deletingExpense.id);
+      setDeletingExpense(null);
+    } catch (error) {
+      console.error('Delete expense error:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   // Exports the ENTIRE filtered & sorted dataset across the month
   function exportToCSV() {
-    const headers = ['ID,Tanggal,Tipe,Kategori,Keterangan,Catatan,Jumlah (Rp)'];
-    const rows = filteredAndSorted.map(e =>
-      `${e.id},"${e.dateStr}","${e.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}","${e.category || 'Lainnya'}","${e.description}","${e.notes || ''}",${e.amount}`
-    );
-    const csvContent = headers.concat(rows).join('\n');
+    const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Keterangan', 'Catatan', 'Jumlah (Rp)'];
+    const rows = filteredAndSorted.map(e => [
+      e.id,
+      escapeCsvCell(e.dateStr),
+      escapeCsvCell(e.type === 'income' ? 'Pemasukan' : 'Pengeluaran'),
+      escapeCsvCell(e.category || 'Lainnya'),
+      escapeCsvCell(e.description),
+      escapeCsvCell(e.notes || ''),
+      Number(e.amount)
+    ].join(','));
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -549,16 +579,18 @@ export default function ExpenseList({
                     >
                       <Edit2 size={13} />
                     </button>
-                    <form action={deleteExpense.bind(null, exp.id)} onClick={e => e.stopPropagation()}>
-                      <button
-                        type="submit"
-                        className="btn-action btn-action--danger"
-                        title={`Hapus transaksi ${exp.description}`}
-                        aria-label={`Hapus transaksi ${exp.description}`}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </form>
+                    <button
+                      type="button"
+                      className="btn-action btn-action--danger"
+                      title={`Hapus transaksi ${exp.description}`}
+                      aria-label={`Hapus transaksi ${exp.description}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingExpense(exp);
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -611,6 +643,19 @@ export default function ExpenseList({
           </div>
         </div>
       )}
+
+      {/* Destructive Confirm Delete Modal */}
+      <ConfirmDialog
+        isOpen={!!deletingExpense}
+        title={`Hapus transaksi "${deletingExpense?.description}"?`}
+        description={`Transaksi ${formatRupiah(deletingExpense?.amount || 0)} ini akan dihapus dari riwayat dan tidak lagi dihitung dalam budget atau analisis. Tindakan ini tidak dapat dibatalkan.`}
+        confirmLabel="Hapus transaksi"
+        cancelLabel="Batal"
+        isDestructive={true}
+        isPending={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingExpense(null)}
+      />
     </div>
   );
 }

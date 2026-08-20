@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import MonthPicker from './MonthPicker';
 import ThemeToggle from './ThemeToggle';
 import LogoutButton from './LogoutButton';
+import { Settings } from 'lucide-react';
 
 export default function AppHeader({ currentMonth }) {
   const pathname = usePathname();
@@ -17,6 +18,8 @@ export default function AppHeader({ currentMonth }) {
     { href: `/budget${monthQuery}`, label: 'Budget', isActive: pathname.startsWith('/budget') },
     { href: `/tujuan${monthQuery}`, label: 'Tujuan', isActive: pathname.startsWith('/tujuan') },
   ];
+
+  const isSettingsActive = pathname === '/pengaturan';
 
   return (
     <header className="site-header">
@@ -39,6 +42,15 @@ export default function AppHeader({ currentMonth }) {
       </div>
       <div className="site-header-right">
         <MonthPicker currentMonth={currentMonth} />
+        <Link
+          href="/pengaturan"
+          className={`header-control ${isSettingsActive ? 'header-control--active' : ''}`}
+          title="Pengaturan"
+          aria-label="Pengaturan"
+          aria-current={isSettingsActive ? 'page' : undefined}
+        >
+          <Settings size={14} />
+        </Link>
         <ThemeToggle />
         <LogoutButton />
       </div>

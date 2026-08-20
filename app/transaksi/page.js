@@ -3,31 +3,13 @@ import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
 import LoginForm from '@/components/LoginForm';
 import TransactionDialog from '@/components/TransactionDialog';
+import { formatDateTime, formatMonthLabel } from '@/lib/format';
 import '@/app/globals.css';
 
 export const metadata = {
   title: 'Transaksi — ArthaFlow',
   description: 'Kelola seluruh riwayat transaksi pemasukan dan pengeluaran.',
 };
-
-function formatWIB(isoString) {
-  const d = new Date(isoString);
-  d.setUTCHours(d.getUTCHours() + 7);
-  
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const day = d.getUTCDate();
-  const month = months[d.getUTCMonth()];
-  const year = d.getUTCFullYear();
-  const hours = String(d.getUTCHours()).padStart(2, '0');
-  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
-  
-  return `${day} ${month} ${year}, ${hours}:${minutes}`;
-}
-
-function formatMonthLabel(dateObj) {
-  const longMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  return `${longMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
-}
 
 export default async function TransactionsPage(props) {
   const userId = await getAuthSession();
@@ -56,7 +38,7 @@ export default async function TransactionsPage(props) {
     .filter(e => e.date.startsWith(selectedMonth))
     .map(e => ({
       ...e,
-      dateStr: formatWIB(e.date)
+      dateStr: formatDateTime(e.date)
     }));
 
   return (

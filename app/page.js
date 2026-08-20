@@ -7,44 +7,14 @@ import TrendChart from '@/components/TrendChart';
 import LoginForm from '@/components/LoginForm';
 import TransactionDialog from '@/components/TransactionDialog';
 import FinancialGoals from '@/components/FinancialGoals';
+import { formatDateTime, formatCompactDate, formatMonthLabel } from '@/lib/format';
+import { formatRupiah } from '@/lib/currency';
 import './globals.css';
 
 export const metadata = {
   title: 'ArthaFlow — Catatan Keuangan Pribadi',
   description: 'Catatan keuangan pribadi yang tenang, presisi, dan terstruktur.',
 };
-
-function formatRupiah(n) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
-  }).format(n);
-}
-
-function formatWIB(isoString) {
-  const d = new Date(isoString);
-  d.setUTCHours(d.getUTCHours() + 7);
-  
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const day = d.getUTCDate();
-  const month = months[d.getUTCMonth()];
-  const year = d.getUTCFullYear();
-  const hours = String(d.getUTCHours()).padStart(2, '0');
-  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
-  
-  return `${day} ${month} ${year}, ${hours}:${minutes}`;
-}
-
-function formatShortWIB(isoString) {
-  const d = new Date(isoString);
-  d.setUTCHours(d.getUTCHours() + 7);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
-}
-
-function formatMonthLabel(dateObj) {
-  const longMonths = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  return `${longMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
-}
 
 export default async function Home(props) {
   const userId = await getAuthSession();
@@ -90,8 +60,8 @@ export default async function Home(props) {
     .filter(e => e.date.startsWith(selectedMonth))
     .map(e => ({
       ...e,
-      dateStr: formatWIB(e.date),
-      shortDateStr: formatShortWIB(e.date)
+      dateStr: formatDateTime(e.date),
+      shortDateStr: formatCompactDate(e.date)
     }));
 
   const reportExpenses = rawExpenses.filter(e => e.date.startsWith(reportMonth));

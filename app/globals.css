@@ -3470,6 +3470,172 @@ a.cat-item-name:hover {
   display: block;
 }
 
+/* ══════════════════════════════════════════
+   PENGATURAN (SETTINGS) WORKSPACE
+   ══════════════════════════════════════════ */
+
+.pengaturan-container {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 0 var(--space-8);
+}
+
+.pengaturan-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pengaturan-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pengaturan-section-header {
+  padding: 0 0.25rem;
+}
+
+.pengaturan-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
+.pengaturan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.pengaturan-card--flat {
+  padding: var(--space-4);
+  background: transparent;
+  border-color: var(--border-subtle);
+}
+
+.pengaturan-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: var(--space-4);
+}
+
+.pengaturan-row:last-child {
+  border-bottom: none;
+}
+
+.pengaturan-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pengaturan-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.pengaturan-desc {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.pengaturan-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.pengaturan-row-btn {
+  flex-shrink: 0;
+}
+
+.pengaturan-row--action {
+  background: var(--surface-raised);
+}
+
+.pengaturan-about-text {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.pengaturan-about-text code {
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--surface-raised);
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ══════════════════════════════════════════
+   CONFIRM DIALOG (DESTRUCTIVE STANDARD)
+   ══════════════════════════════════════════ */
+
+.confirm-dialog-box {
+  max-width: min(var(--dialog-sm), calc(100vw - 32px));
+}
+
+.confirm-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.confirm-dialog-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.confirm-dialog-body {
+  margin-bottom: var(--space-5);
+}
+
+.confirm-dialog-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.confirm-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .pengaturan-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .pengaturan-row-btn {
+    width: 100%;
+  }
+
+  .pengaturan-row-btn a,
+  .pengaturan-row-btn button {
+    width: 100%;
+  }
+}
+
 @media print {
   body {
     background: #ffffff !important;

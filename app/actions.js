@@ -129,11 +129,30 @@ export async function login(formData) {
   cookieStore.set('auth_token', token, { 
     httpOnly: true, 
     secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'lax',
+    path: '/',
     maxAge: 60 * 60 * 24 * 30 
   });
 
   revalidatePath('/');
   return { success: true };
+}
+
+export async function getCurrentUser() {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return null;
+
+  const res = await db.execute({
+    sql: 'SELECT username FROM users WHERE id = ?',
+    args: [userId]
+  });
+  const user = res.rows[0];
+  if (!user) return null;
+
+  return {
+    username: String(user.username)
+  };
 }
 
 export async function logout() {
@@ -145,7 +164,13 @@ export async function logout() {
       args: [token]
     });
   }
-  cookieStore.delete('auth_token');
+  cookieStore.set('auth_token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0
+  });
   revalidatePath('/');
 }
 
