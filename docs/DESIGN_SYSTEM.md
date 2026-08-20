@@ -52,28 +52,28 @@ All colors in ArthaFlow are mapped to semantic CSS custom properties.
 }
 ```
 
-### Light Mode
+### Light Mode (Soft Off-White Eye Comfort)
 
 ```css
 [data-theme="light"] {
-  --bg: #f4f5f1;
-  --surface: #fafbf8;
-  --surface-raised: #ffffff;
-  --surface-hover: #eef1ec;
+  --bg: #eef0ea;
+  --surface: #f5f6f2;
+  --surface-raised: #fafbf7;
+  --surface-hover: #e8ebe5;
 
-  --border-subtle: #e4e7e1;
-  --border: #d9ded7;
-  --border-strong: #cbd1c9;
+  --border-subtle: #dde1da;
+  --border: #cdd3cb;
+  --border-strong: #bec6bd;
 
-  --text: #1b1f1b;
-  --text-secondary: #606860;
-  --text-muted: #8a938b;
-  --text-faint: #a8aea8;
+  --text: #20251f;
+  --text-secondary: #596159;
+  --text-muted: #747d75;
+  --text-faint: #989f98;
 
   --brand: #58745a;
   --brand-strong: #476149;
   --brand-muted: #718b73;
-  --brand-subtle: #e8eee7;
+  --brand-subtle: #e5ebe4;
 
   --income: #4f7e5b;
   --expense: #a85c55;
