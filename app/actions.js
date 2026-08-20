@@ -90,6 +90,10 @@ export async function register(formData) {
         sql: 'UPDATE budgets SET user_id = ? WHERE user_id IS NULL',
         args: [newUserId]
       });
+      await tx.execute({
+        sql: 'UPDATE category_budgets SET user_id = ? WHERE user_id IS NULL',
+        args: [newUserId]
+      });
     }
     await tx.commit();
   } catch (error) {
@@ -306,6 +310,63 @@ export async function setBudget(formData) {
     console.error('setBudget error:', error);
   }
   revalidatePath('/');
+}
+
+// --- CATEGORY BUDGETS ---
+
+export async function getCategoryBudgets(month) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return [];
+
+  const res = await db.execute({
+    sql: 'SELECT category, amount FROM category_budgets WHERE user_id = ? AND month = ? ORDER BY category ASC',
+    args: [userId, month]
+  });
+  return res.rows.map(r => ({
+    category: String(r.category),
+    amount: Number(r.amount)
+  }));
+}
+
+export async function setCategoryBudget(formData) {
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const month = formData.get('month');
+  const category = sanitizeCategoryName(formData.get('category'));
+  const amount = parseCurrency(formData.get('budget'));
+
+  if (!month || !category || isNaN(amount) || amount <= 0) return;
+
+  try {
+    await db.execute({
+      sql: `
+        INSERT INTO category_budgets (user_id, month, category, amount) VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id, month, category) DO UPDATE SET amount = excluded.amount
+      `,
+      args: [userId, month, category, amount]
+    });
+  } catch (error) {
+    console.error('setCategoryBudget error:', error);
+  }
+  revalidatePath('/budget');
+}
+
+export async function deleteCategoryBudget(formData) {
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const month = formData.get('month');
+  const category = formData.get('category');
+
+  if (!month || !category) return;
+
+  await db.execute({
+    sql: 'DELETE FROM category_budgets WHERE user_id = ? AND month = ? AND category = ?',
+    args: [userId, month, category]
+  });
+  revalidatePath('/budget');
 }
 
 // --- GOALS ---
