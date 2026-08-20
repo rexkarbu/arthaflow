@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import MonthPicker from './MonthPicker';
 import ThemeToggle from './ThemeToggle';
 import LogoutButton from './LogoutButton';
+import ArthaFlowLogo from './ArthaFlowLogo';
 import { Settings } from 'lucide-react';
 
 export default function AppHeader({ currentMonth }) {
@@ -24,8 +25,8 @@ export default function AppHeader({ currentMonth }) {
   return (
     <header className="site-header">
       <div className="site-header-left">
-        <Link href={currentMonth ? `/?month=${currentMonth}` : '/'} className="site-brand" style={{ textDecoration: 'none' }}>
-          <span className="site-title">ArthaFlow<span>.</span></span>
+        <Link href={currentMonth ? `/?month=${currentMonth}` : '/'} className="site-brand" style={{ textDecoration: 'none' }} aria-label="ArthaFlow Beranda">
+          <ArthaFlowLogo variant="full" size={17} />
         </Link>
         <nav className="desktop-nav" aria-label="Navigasi Utama">
           {navItems.map((item) => (

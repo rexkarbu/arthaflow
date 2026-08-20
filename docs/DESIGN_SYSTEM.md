@@ -234,3 +234,21 @@ Primary font: **Geist** (`sans-serif`).
 | Use explicit 4px baseline spacing (`--space-1` to `--space-16`)       | Introduce arbitrary margins (e.g. `13px`, `27px`)                |
 | Use `.btn-primary` for the single primary CTA                         | Make every button on the screen primary                          |
 | Use `var(--expense)` for financial expenses and destructive deletions | Make standard expense rows look like destructive warning buttons |
+
+---
+
+## 13. Brand Identity & Logo System
+
+The visual identity of ArthaFlow combines an **Architectural Monogram** with a **Refined Wordmark**:
+
+1. **Brand Mark (`variant="mark"`)**:
+   - Clean 24×24 geometric SVG symbol merging the structural stems of `A` and `F` with an interlocking allocation crossbar.
+   - Includes a discrete Sage accent square (`var(--brand)`) representing the signature ArthaFlow dot in structural form.
+   - Scalable from 16×16px (favicon) to 160px+ hero applications.
+2. **Primary Lockup (`variant="full"`)**:
+   - Combines the brand mark and `ArthaFlow.` wordmark in horizontal rhythm. Used in `AppHeader` and authentication headers.
+3. **Wordmark Only (`variant="wordmark"`)**:
+   - `ArthaFlow.` with the signature sage dot. Used in PDF financial reports and print headers.
+4. **Color Rules**:
+   - Maximum 2 colors: Neutral (`var(--text)` / `currentColor`) + Sage Accent (`var(--brand)`).
+   - 100% monochrome compliant when rendered in black or white.

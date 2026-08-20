@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, register } from '@/app/actions';
+import ArthaFlowLogo from './ArthaFlowLogo';
 import { toast } from 'sonner';
 
 export default function LoginForm() {
@@ -50,7 +51,7 @@ export default function LoginForm() {
         {/* Top Wordmark & Structural Rule */}
         <div className="auth-header">
           <div className="auth-brand">
-            ArthaFlow<span>.</span>
+            <ArthaFlowLogo variant="full" size={22} />
           </div>
         </div>
         <div className="auth-divider" />

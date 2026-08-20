@@ -306,8 +306,30 @@ body {
   letter-spacing: -0.3px;
 }
 
-.site-title span {
+.site-title span,
+.logo-dot {
   color: var(--brand);
+}
+
+.arthaflow-brand-mark {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.arthaflow-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.arthaflow-brand-wordmark {
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.site-title span {
   display: inline-block;
   animation: brandDotPulse 3.5s ease-in-out infinite;
 }
