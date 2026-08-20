@@ -42,13 +42,6 @@ function formatMonthLabel(dateObj) {
   return `${longMonths[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
 }
 
-// Map common categories to semantic colors in the new palette
-function getCategoryColor(index) {
-  // We have 6 palette colors: --cat-1 to --cat-6
-  const normalizedIndex = (index % 6) + 1;
-  return `var(--cat-${normalizedIndex})`;
-}
-
 export default async function Home(props) {
   const userId = await getAuthSession();
   if (!userId) {
@@ -226,6 +219,7 @@ export default async function Home(props) {
       {/* ... [PRINT TEMPLATE REMAINS EXACTLY THE SAME] ... */}
       <div className="print-report-header">
         <div className="print-brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/arthaflow-brand.svg" alt="ArthaFlow official brand" className="print-brand-logo-image" />
           <div className="print-brand-body">
             <div className="print-brand-title">Laporan Keuangan Bulanan</div>
@@ -423,49 +417,51 @@ export default async function Home(props) {
       />
 
       {/* Monthly Insight (replaces large Laporan Bulanan card) */}
-      <div className="monthly-insight">
-        {insightText}
+      <div className="monthly-insight" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '1rem', marginTop: '1rem' }}>
+        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Ringkasan</div>
+        <div>{insightText}</div>
       </div>
 
-      {/* Primary Analytics (Trend/Cash flow) */}
-      <TrendChart data={trendData} />
+      <div className="analytics-grid">
+        {/* Primary Analytics (Trend/Cash flow) */}
+        <TrendChart data={trendData} />
 
-      {/* Category Breakdown (Replaces Donut Chart) */}
-      {expenses.length > 0 && (
-        <div className="category-breakdown">
-          <div className="section-title">Pengeluaran terbesar</div>
-          <div>
-            {Object.entries(byCategory)
-              .sort(([, a], [, b]) => b - a)
-              .slice(0, 5) // Show top 5
-              .map(([cat, amt], index) => {
-                const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
-                const categorySlug = encodeURIComponent(cat);
-                const colorToken = getCategoryColor(index);
-                
-                return (
-                  <div key={cat} className="cat-item">
-                    <div className="cat-item-top">
-                      <Link href={`/kategori/${categorySlug}`} className="cat-item-name">
-                        {cat}
-                      </Link>
-                      <div className="cat-item-values">
-                        <span className="cat-item-amount">{formatRupiah(amt)}</span>
-                        <span className="cat-item-pct">{pct}%</span>
+        {/* Category Breakdown (Replaces Donut Chart) */}
+        {expenses.length > 0 ? (
+          <div className="category-breakdown">
+            <div className="section-title">Pengeluaran terbesar</div>
+            <div>
+              {Object.entries(byCategory)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5) // Show top 5
+                .map(([cat, amt]) => {
+                  const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
+                  const categorySlug = encodeURIComponent(cat);
+                  
+                  return (
+                    <div key={cat} className="cat-item">
+                      <div className="cat-item-top">
+                        <Link href={`/kategori/${categorySlug}`} className="cat-item-name">
+                          {cat}
+                        </Link>
+                        <div className="cat-item-values">
+                          <span className="cat-item-amount">{formatRupiah(amt)}</span>
+                          <span className="cat-item-pct">{pct}%</span>
+                        </div>
+                      </div>
+                      <div className="cat-bar-track">
+                        <div 
+                          className="cat-bar-fill" 
+                          style={{ width: `${Math.max(pct, 2)}%`, background: 'var(--text-muted)' }} 
+                        />
                       </div>
                     </div>
-                    <div className="cat-bar-track">
-                      <div 
-                        className="cat-bar-fill" 
-                        style={{ width: `${Math.max(pct, 2)}%`, background: colorToken }} 
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+            </div>
           </div>
-        </div>
-      )}
+        ) : <div />}
+      </div>
 
       {/* Financial Goals Preview */}
       <FinancialGoals goals={goals} totalSavings={totalSavings} />

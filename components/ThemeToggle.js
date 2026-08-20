@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react';
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
   if (!mounted) return <button className="header-control" style={{ width: '32px', height: '32px' }} aria-hidden="true" />;
 
   return (

@@ -41,59 +41,61 @@ export default function LoginForm() {
 
   return (
     <div className="login-container">
-      <div className="login-left">
-        <div className="login-brand">
-          ArthaFlow<span>.</span>
+      <div className="login-wrapper">
+        <div className="login-left">
+          <div className="login-brand">
+            ArthaFlow<span>.</span>
+          </div>
+          <h1 className="login-tagline">
+            Keuangan pribadi, tanpa keribetan.
+          </h1>
+          <p className="login-desc">
+            Pantau pemasukan, pengeluaran, budget, dan tujuan keuangan dalam satu tempat.
+          </p>
         </div>
-        <h1 className="login-tagline">
-          Keuangan pribadi, tanpa keribetan.
-        </h1>
-        <p className="login-desc">
-          Track income, expenses, monthly budgets, and financial goals in one place.
-        </p>
-      </div>
-      
-      <div className="login-right">
-        <h2 className="login-form-title">
-          {isRegister ? 'Buat akun baru' : 'Masuk ke ArthaFlow'}
-        </h2>
         
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label className="label">Username</label>
-            <input
-              type="text"
-              name="username"
-              className="input"
-              placeholder="Username"
-              required
-              autoFocus
-            />
-          </div>
-          <div className="field" style={{ marginBottom: '1.5rem' }}>
-            <label className="label">Password</label>
-            <input
-              type="password"
-              name="password"
-              className="input"
-              placeholder="Password"
-              required
-            />
-          </div>
+        <div className="login-right">
+          <h2 className="login-form-title">
+            {isRegister ? 'Buat akun baru' : 'Masuk ke ArthaFlow'}
+          </h2>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="field">
+              <label className="label">Username</label>
+              <input
+                type="text"
+                name="username"
+                className="input"
+                placeholder="Username"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="field" style={{ marginBottom: '1.5rem' }}>
+              <label className="label">Password</label>
+              <input
+                type="password"
+                name="password"
+                className="input"
+                placeholder="Password"
+                required
+              />
+            </div>
 
-          <button type="submit" className="btn-submit" disabled={loading}>
-            {loading ? 'Memproses...' : (isRegister ? 'Daftar' : 'Masuk')}
-          </button>
-        </form>
+            <button type="submit" className="btn-submit" disabled={loading}>
+              {loading ? 'Memproses...' : (isRegister ? 'Daftar' : 'Masuk')}
+            </button>
+          </form>
 
-        <div className="login-switch">
-          {isRegister ? 'Sudah punya akun? ' : 'Belum punya akun? '}
-          <button
-            type="button"
-            onClick={() => setIsRegister(!isRegister)}
-          >
-            {isRegister ? 'Masuk' : 'Buat baru'}
-          </button>
+          <div className="login-switch">
+            {isRegister ? 'Sudah punya akun? ' : 'Belum punya akun? '}
+            <button
+              type="button"
+              onClick={() => setIsRegister(!isRegister)}
+            >
+              {isRegister ? 'Masuk' : 'Buat baru'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

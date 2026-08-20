@@ -15,6 +15,7 @@ export default function FinancialGoals({ goals, totalSavings }) {
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
   const [amountError, setAmountError] = useState('');
+  const [expanded, setExpanded] = useState(false);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -43,9 +44,9 @@ export default function FinancialGoals({ goals, totalSavings }) {
     }
   }
 
-  // Optional: only show top 2 goals if there are many, but since it's personal finance,
-  // showing all compact goals is often fine. We'll show all but keep them compact.
-  
+  const visibleGoals = expanded ? goals : goals.slice(0, 2);
+  const hiddenCount = goals.length - 2;
+
   return (
     <div className="goals-section">
       <div className="goals-header">
@@ -80,7 +81,7 @@ export default function FinancialGoals({ goals, totalSavings }) {
         </div>
       ) : (
         <div>
-          {goals.map(goal => {
+          {visibleGoals.map(goal => {
             const progressPercentage = Math.min(100, Math.max(0, (totalSavings / goal.target_amount) * 100));
             const isAchieved = progressPercentage >= 100;
             const remaining = Math.max(0, goal.target_amount - totalSavings);
@@ -127,6 +128,20 @@ export default function FinancialGoals({ goals, totalSavings }) {
               </div>
             );
           })}
+          
+          {!expanded && hiddenCount > 0 && (
+            <button 
+              type="button" 
+              onClick={() => setExpanded(true)}
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)', 
+                fontSize: '0.8rem', cursor: 'pointer', padding: '0.5rem 0', width: '100%',
+                textAlign: 'left', marginTop: '0.5rem', fontFamily: 'inherit'
+              }}
+            >
+              Lihat {hiddenCount} lainnya...
+            </button>
+          )}
         </div>
       )}
     </div>

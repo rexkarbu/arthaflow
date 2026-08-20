@@ -75,17 +75,17 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
           )}
         </div>
 
-        <div className="cat-tabs">
+        <select
+          className="input"
+          value={activeCat}
+          onChange={(e) => setActiveCat(e.target.value)}
+          style={{ width: 'auto', minWidth: '140px', padding: '0.45rem 2rem 0.45rem 0.65rem', cursor: 'pointer' }}
+          aria-label="Filter kategori"
+        >
           {usedCategories.map(cat => (
-            <button
-              key={cat}
-              className={`cat-tab ${activeCat === cat ? 'active' : ''}`}
-              onClick={() => setActiveCat(cat)}
-            >
-              {cat}
-            </button>
+            <option key={cat} value={cat}>{cat}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* Result info */}

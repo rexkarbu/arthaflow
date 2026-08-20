@@ -91,11 +91,15 @@ export default function TransactionDialog({ expenseCategories, incomeCategories 
           onClick={(e) => {
             if (e.target === e.currentTarget) close();
           }}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Catat transaksi"
+          aria-hidden="true"
         >
-          <div className="dialog-content" ref={dialogRef}>
+          <div 
+            className="dialog-content" 
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Catat transaksi"
+          >
             <button
               className="dialog-close"
               onClick={close}

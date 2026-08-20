@@ -43,10 +43,17 @@ export default function Loading() {
       <div className="chart-section">
         <div className="skeleton" style={{ width: '80px', height: '18px', marginBottom: '12px' }}></div>
         <div className="chart-container" style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '16px 0' }}>
-          {[1, 2, 3, 4, 5, 6].map(i => (
+          {[
+            { a: 40, b: 30 },
+            { a: 60, b: 20 },
+            { a: 50, b: 40 },
+            { a: 70, b: 35 },
+            { a: 80, b: 50 },
+            { a: 65, b: 45 }
+          ].map((h, i) => (
             <div key={i} style={{ flex: 1, display: 'flex', gap: '4px', alignItems: 'flex-end', height: '100%' }}>
-              <div className="skeleton" style={{ flex: 1, height: `${Math.random() * 60 + 20}%`, borderRadius: '4px 4px 0 0' }}></div>
-              <div className="skeleton" style={{ flex: 1, height: `${Math.random() * 40 + 10}%`, borderRadius: '4px 4px 0 0' }}></div>
+              <div className="skeleton" style={{ flex: 1, height: `${h.a}%`, borderRadius: '4px 4px 0 0' }}></div>
+              <div className="skeleton" style={{ flex: 1, height: `${h.b}%`, borderRadius: '4px 4px 0 0' }}></div>
             </div>
           ))}
         </div>
