@@ -403,18 +403,31 @@ export async function getGoals() {
   const userId = await getAuthSession();
   if (!userId) return [];
   const result = await db.execute({
-    sql: 'SELECT * FROM goals WHERE user_id = ? ORDER BY id DESC',
+    sql: `SELECT 
+            g.id,
+            g.name,
+            g.target_amount,
+            g.created_at,
+            COALESCE(SUM(c.amount), 0) as saved_amount
+          FROM goals g
+          LEFT JOIN goal_contributions c 
+            ON c.goal_id = g.id AND c.user_id = g.user_id
+          WHERE g.user_id = ?
+          GROUP BY g.id, g.name, g.target_amount, g.created_at
+          ORDER BY g.id DESC`,
     args: [userId]
   });
   return result.rows.map(row => ({
-    id: row.id,
-    name: row.name,
-    target_amount: row.target_amount,
-    created_at: row.created_at
+    id: Number(row.id),
+    name: String(row.name),
+    target_amount: Number(row.target_amount),
+    saved_amount: Number(row.saved_amount),
+    created_at: String(row.created_at ?? '')
   }));
 }
 
 export async function addGoal(formData) {
+  await dbReady;
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
 
@@ -429,18 +442,110 @@ export async function addGoal(formData) {
   });
 
   revalidatePath('/');
+  revalidatePath('/tujuan');
 }
 
 export async function deleteGoal(id) {
+  await dbReady;
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
 
+  const goalId = Number(id);
+  if (!goalId) return;
+
+  // First verify goal belongs to current user
+  const check = await db.execute({
+    sql: 'SELECT id FROM goals WHERE id = ? AND user_id = ?',
+    args: [goalId, userId]
+  });
+  if (check.rows.length === 0) throw new Error('Tujuan tidak ditemukan');
+
+  // Delete contributions first, then the goal
+  await db.execute({
+    sql: 'DELETE FROM goal_contributions WHERE goal_id = ? AND user_id = ?',
+    args: [goalId, userId]
+  });
+
   await db.execute({
     sql: 'DELETE FROM goals WHERE id = ? AND user_id = ?',
-    args: [id, userId]
+    args: [goalId, userId]
   });
 
   revalidatePath('/');
+  revalidatePath('/tujuan');
+}
+
+export async function addGoalFunds(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const goalId = Number(formData.get('goal_id'));
+  const amount = parseCurrency(formData.get('amount'));
+  const note = String(formData.get('note') ?? '').trim();
+
+  if (!goalId || amount <= 0) {
+    throw new Error('Nominal penambahan dana harus lebih dari 0');
+  }
+
+  // Verify ownership
+  const check = await db.execute({
+    sql: 'SELECT id FROM goals WHERE id = ? AND user_id = ?',
+    args: [goalId, userId]
+  });
+  if (check.rows.length === 0) {
+    throw new Error('Tujuan tidak ditemukan');
+  }
+
+  await db.execute({
+    sql: 'INSERT INTO goal_contributions (user_id, goal_id, amount, note) VALUES (?, ?, ?, ?)',
+    args: [userId, goalId, amount, note]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/tujuan');
+}
+
+export async function withdrawGoalFunds(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const goalId = Number(formData.get('goal_id'));
+  const amount = parseCurrency(formData.get('amount'));
+  const note = String(formData.get('note') ?? '').trim();
+
+  if (!goalId || amount <= 0) {
+    throw new Error('Nominal pengurangan dana harus lebih dari 0');
+  }
+
+  // Verify ownership and calculate current balance server-side
+  const check = await db.execute({
+    sql: `SELECT g.id, COALESCE(SUM(c.amount), 0) as current_balance
+          FROM goals g
+          LEFT JOIN goal_contributions c 
+            ON c.goal_id = g.id AND c.user_id = g.user_id
+          WHERE g.id = ? AND g.user_id = ?
+          GROUP BY g.id`,
+    args: [goalId, userId]
+  });
+
+  if (check.rows.length === 0) {
+    throw new Error('Tujuan tidak ditemukan');
+  }
+
+  const currentBalance = Number(check.rows[0].current_balance);
+  if (amount > currentBalance) {
+    throw new Error('Dana yang dikurangi melebihi saldo tujuan');
+  }
+
+  await db.execute({
+    sql: 'INSERT INTO goal_contributions (user_id, goal_id, amount, note) VALUES (?, ?, ?, ?)',
+    args: [userId, goalId, -amount, note]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/tujuan');
 }
 
 // --- CATEGORIES ---

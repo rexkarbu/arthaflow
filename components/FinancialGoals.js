@@ -2,19 +2,25 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, PlusCircle, MinusCircle } from 'lucide-react';
 import { addGoal, deleteGoal } from '@/app/actions';
 import { toast } from 'sonner';
 import CurrencyInput from './CurrencyInput';
+import GoalFundDialog from './GoalFundDialog';
 import { formatRupiah, parseCurrency } from '@/lib/currency';
 
-export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'preview', currentMonth = '' }) {
+export default function FinancialGoals({ goals = [], mode = 'preview', currentMonth = '' }) {
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeFundGoal, setActiveFundGoal] = useState(null);
+  const [fundDialogMode, setFundDialogMode] = useState('add');
 
   const isPreview = mode === 'preview';
   const monthQuery = currentMonth ? `?month=${currentMonth}` : '';
   const visibleGoals = isPreview ? goals.slice(0, 2) : goals;
+
+  // Aggregate total saved across all independent goals
+  const totalAllocated = goals.reduce((sum, g) => sum + (Number(g.saved_amount) || 0), 0);
 
   async function handleAdd(e) {
     e.preventDefault();
@@ -43,10 +49,32 @@ export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'p
       setIsAdding(false);
       toast.success('Target tabungan berhasil ditambahkan');
     } catch (err) {
-      toast.error('Gagal menambahkan target.');
+      toast.error(err?.message || 'Gagal menambahkan target.');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleDelete(goal) {
+    if (!window.confirm(`Hapus tujuan "${goal.name}"?\nDana yang dialokasikan ke tujuan ini tidak akan lagi tercatat sebagai bagian dari tujuan.`)) {
+      return;
+    }
+
+    try {
+      await deleteGoal(goal.id);
+      toast.success(`Target "${goal.name}" berhasil dihapus`);
+    } catch (err) {
+      toast.error(err?.message || 'Gagal menghapus target.');
+    }
+  }
+
+  function openFundDialog(goal, mode) {
+    setActiveFundGoal(goal);
+    setFundDialogMode(mode);
+  }
+
+  function closeFundDialog() {
+    setActiveFundGoal(null);
   }
 
   return (
@@ -61,12 +89,25 @@ export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'p
         </div>
       )}
 
-      {/* Full Mode Header: '+ Tambah tujuan' button */}
-      {!isPreview && !isAdding && goals.length > 0 && (
-        <div className="goals-full-top">
-          <button onClick={() => setIsAdding(true)} className="goals-add-btn">
-            <Plus size={13} /> Tambah tujuan
-          </button>
+      {/* Full Mode Header & Summary */}
+      {!isPreview && (
+        <div className="goals-full-header-container">
+          <div className="goals-summary-strip">
+            <span className="goals-summary-count">{goals.length} tujuan</span>
+            <span className="goals-summary-dot" aria-hidden="true">&middot;</span>
+            <span className="goals-summary-total">
+              {formatRupiah(totalAllocated)} tersimpan di semua tujuan
+            </span>
+          </div>
+          {!isAdding && goals.length > 0 && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="goals-add-btn"
+              type="button"
+            >
+              <Plus size={13} /> Tambah tujuan
+            </button>
+          )}
         </div>
       )}
 
@@ -78,7 +119,7 @@ export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'p
               type="text"
               name="name"
               className="input"
-              placeholder="Nama tujuan (cth. Dana darurat, Liburan)"
+              placeholder="Nama tujuan (cth. Dana darurat, Liburan, Laptop)"
               required
               autoFocus
             />
@@ -105,69 +146,119 @@ export default function FinancialGoals({ goals = [], totalSavings = 0, mode = 'p
         <div className="goal-inline-empty">
           <span className="goal-empty-text">Belum ada target tabungan.</span>
           {!isPreview && !isAdding && (
-            <button onClick={() => setIsAdding(true)} className="goal-create-btn">
+            <button onClick={() => setIsAdding(true)} className="goal-create-btn" type="button">
               <Plus size={12} /> Tambah tujuan
             </button>
           )}
         </div>
       ) : (
-        <div className="goal-list">
+        <div className="goal-list" role="list">
           {visibleGoals.map(goal => {
-            const progressPercentage = Math.min(100, Math.max(0, (totalSavings / goal.target_amount) * 100));
-            const isAchieved = progressPercentage >= 100;
-            const remaining = Math.max(0, goal.target_amount - totalSavings);
-            
+            const saved = Number(goal.saved_amount) || 0;
+            const target = Number(goal.target_amount) || 1;
+            const percentage = Math.round((saved / target) * 100);
+            const visualPercentage = Math.min(100, Math.max(0, percentage));
+            const isAchieved = saved >= target;
+            const isOverfunded = saved > target;
+            const remaining = Math.max(0, target - saved);
+            const overAmount = saved - target;
+
             return (
-              <div key={goal.id} className="goal-item">
+              <div key={goal.id} className="goal-item" role="listitem">
                 <div className="goal-top">
                   <span className={`goal-name ${isAchieved ? 'goal-name--achieved' : ''}`}>
                     {goal.name}
                   </span>
-                  {/* Delete button only rendered in full mode on /tujuan */}
+                  {/* Delete button only in full mode on /tujuan */}
                   {!isPreview && (
-                    <form action={async () => {
-                      await deleteGoal(goal.id);
-                      toast.success('Target dihapus');
-                    }}>
-                      <button
-                        type="submit"
-                        className="goal-delete-btn"
-                        title={`Hapus target ${goal.name}`}
-                        aria-label={`Hapus target ${goal.name}`}
-                      >
-                        <X size={13} />
-                      </button>
-                    </form>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(goal)}
+                      className="goal-delete-btn"
+                      title={`Hapus target ${goal.name}`}
+                      aria-label={`Hapus target ${goal.name}`}
+                    >
+                      <X size={13} />
+                    </button>
                   )}
                 </div>
-                
+
                 <div className="goal-amounts">
-                  <span>{formatRupiah(totalSavings)}</span>
-                  <span className="goal-amount-sep">/</span>
-                  <span>{formatRupiah(goal.target_amount)}</span>
+                  <span>{formatRupiah(saved)}</span>
+                  <span className="goal-amount-sep">dari</span>
+                  <span>{formatRupiah(target)}</span>
                 </div>
 
-                <div className="goal-track">
-                  <div 
+                <div
+                  className="goal-track"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={target}
+                  aria-valuenow={saved}
+                  aria-label={`Progres ${goal.name}`}
+                >
+                  <div
                     className={`goal-fill ${isAchieved ? 'goal-fill--achieved' : ''}`}
-                    style={{ width: `${progressPercentage}%` }}
+                    style={{ width: `${visualPercentage}%` }}
                   />
                 </div>
-                
+
                 <div className="goal-meta">
-                  {isAchieved ? (
+                  {saved === 0 ? (
+                    <span className="goal-remaining goal-remaining--zero">Belum ada dana dialokasikan</span>
+                  ) : isOverfunded ? (
+                    <span className="goal-status-achieved">
+                      Target tercapai &middot; Lebih {formatRupiah(overAmount)}
+                    </span>
+                  ) : isAchieved ? (
                     <span className="goal-status-achieved">Target tercapai</span>
                   ) : (
                     <span className="goal-remaining">Sisa {formatRupiah(remaining)}</span>
                   )}
                   <span className={`goal-pct ${isAchieved ? 'goal-pct--achieved' : ''}`}>
-                    {progressPercentage.toFixed(0)}%
+                    {percentage}%
                   </span>
                 </div>
+
+                {/* Fund Management Actions (Full Mode on /tujuan) */}
+                {!isPreview && (
+                  <div className="goal-actions">
+                    <button
+                      type="button"
+                      className="goal-action-btn goal-action-btn--add"
+                      onClick={() => openFundDialog(goal, 'add')}
+                      aria-label={`Tambah dana ke ${goal.name}`}
+                    >
+                      <PlusCircle size={13} />
+                      <span>Tambah dana</span>
+                    </button>
+                    {saved > 0 && (
+                      <button
+                        type="button"
+                        className="goal-action-btn goal-action-btn--withdraw"
+                        onClick={() => openFundDialog(goal, 'withdraw')}
+                        aria-label={`Kurangi dana dari ${goal.name}`}
+                      >
+                        <MinusCircle size={13} />
+                        <span>Kurangi dana</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Fund Add/Withdraw Modal */}
+      {!isPreview && activeFundGoal && (
+        <GoalFundDialog
+          goal={activeFundGoal}
+          mode={fundDialogMode}
+          isOpen={!!activeFundGoal}
+          onClose={closeFundDialog}
+        />
       )}
     </div>
   );

@@ -466,8 +466,8 @@ export default async function Home(props) {
         </div>
       </div>
 
-      {/* Financial Goals (Monarch Influence) */}
-      <FinancialGoals goals={goals} totalSavings={totalSavings} mode="preview" currentMonth={selectedMonth} />
+      {/* Financial Goals */}
+      <FinancialGoals goals={goals} mode="preview" currentMonth={selectedMonth} />
 
       {/* Transactions Overview Preview (Max 10 rows, simplified dates, context-aware footer link) */}
       <div className="transactions-container">
