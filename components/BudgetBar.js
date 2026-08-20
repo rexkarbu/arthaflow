@@ -15,10 +15,10 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
   const [isPending, startTransition] = useTransition();
 
   const hasBudget = budget !== null;
-  const pct = hasBudget ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
+  const pct = hasBudget && budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
   const sisa = hasBudget ? budget - spent : 0;
-  const isWarning = hasBudget && pct >= 75 && pct < 100;
-  const isDanger = hasBudget && pct >= 100;
+  const isWarning = hasBudget && spent / budget >= 0.75 && spent <= budget;
+  const isDanger = hasBudget && spent > budget;
 
   async function formAction(fd) {
     const amount = parseFloat(fd.get('budget'));
@@ -39,7 +39,7 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
           className="budget-edit-btn"
           onClick={() => setEditing(prev => !prev)}
         >
-          {editing ? 'Batal' : 'Set Budget'}
+          {editing ? 'Batal' : (hasBudget ? 'Ubah budget' : 'Set budget')}
         </button>
       </div>
 
@@ -50,7 +50,7 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
             type="number"
             name="budget"
             className="budget-input"
-            placeholder="contoh: 1000000"
+            placeholder="contoh: 5000000"
             value={inputVal}
             onChange={e => setInputVal(e.target.value)}
             min="1"
@@ -65,37 +65,40 @@ export default function BudgetBar({ month, monthLabel, budget, spent }) {
 
       {hasBudget && !editing && (
         <>
-          <div className="budget-amounts">
+          <div className="budget-primary-stat">
             {isDanger ? (
-              <span className="status-danger">
-                Melewati budget!
-              </span>
+              <div className="budget-status-danger">
+                Melebihi budget sebesar <strong>{formatRupiah(Math.abs(sisa))}</strong>
+              </div>
             ) : isWarning ? (
-              <span className="status-warning">
-                Mendekati limit budget
-              </span>
+              <div className="budget-status-warning">
+                <strong>{formatRupiah(sisa)}</strong> tersisa
+              </div>
             ) : (
-              <span>
-                <strong>{formatRupiah(spent)}</strong> digunakan dari <strong>{formatRupiah(budget)}</strong>
-              </span>
+              <div className="budget-status-ok">
+                <strong>{formatRupiah(sisa)}</strong> tersisa
+              </div>
             )}
+            <div className="budget-supporting">
+              {formatRupiah(spent)} digunakan dari {formatRupiah(budget)}
+            </div>
           </div>
 
           <div className="budget-track">
             <div
               className={`budget-fill ${isDanger ? 'fill-danger' : isWarning ? 'fill-warning' : 'fill-ok'}`}
-              style={{ width: `${pct}%` }}
+              style={{ width: `${Math.min(pct, 100)}%` }}
             />
           </div>
 
           <div className="budget-numbers">
-            <span>{pct}% terpakai</span>
+            <span>{hasBudget && budget > 0 ? Math.round((spent / budget) * 100) : 0}% digunakan</span>
             {isDanger ? (
-              <span style={{ color: 'var(--expense)' }}>
+              <span className="status-danger-text">
                 Lebih {formatRupiah(Math.abs(sisa))}
               </span>
             ) : (
-              <span>Sisa {formatRupiah(sisa)}</span>
+              <span>{formatRupiah(sisa)} tersisa</span>
             )}
           </div>
         </>

@@ -47,7 +47,7 @@ export default function LoginForm() {
             ArthaFlow<span>.</span>
           </div>
           <h1 className="login-tagline">
-            Keuangan pribadi, tanpa keribetan.
+            Keuangan pribadi, lebih jelas.
           </h1>
           <p className="login-desc">
             Pantau pemasukan, pengeluaran, budget, dan tujuan keuangan dalam satu tempat.
@@ -55,8 +55,11 @@ export default function LoginForm() {
         </div>
         
         <div className="login-right">
+          <div className="login-mobile-brand">
+            ArthaFlow<span>.</span>
+          </div>
           <h2 className="login-form-title">
-            {isRegister ? 'Buat akun baru' : 'Masuk ke ArthaFlow'}
+            {isRegister ? 'Buat akun baru' : 'Masuk ke akun'}
           </h2>
           
           <form onSubmit={handleSubmit}>
@@ -71,7 +74,7 @@ export default function LoginForm() {
                 autoFocus
               />
             </div>
-            <div className="field" style={{ marginBottom: '1.5rem' }}>
+            <div className="field" style={{ marginBottom: '1.25rem' }}>
               <label className="label">Password</label>
               <input
                 type="password"
@@ -93,7 +96,7 @@ export default function LoginForm() {
               type="button"
               onClick={() => setIsRegister(!isRegister)}
             >
-              {isRegister ? 'Masuk' : 'Buat baru'}
+              {isRegister ? 'Masuk' : 'Buat akun baru'}
             </button>
           </div>
         </div>

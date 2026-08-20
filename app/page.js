@@ -1,5 +1,4 @@
 import { getExpenses, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals } from './actions';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
 import ExpenseList from '@/components/ExpenseList';
 import BudgetBar from '@/components/BudgetBar';
@@ -13,8 +12,8 @@ import FinancialGoals from '@/components/FinancialGoals';
 import './globals.css';
 
 export const metadata = {
-  title: 'ArthaFlow',
-  description: 'Catatan keuangan pribadi',
+  title: 'ArthaFlow — Catatan Keuangan Pribadi',
+  description: 'Catatan keuangan pribadi yang tenang, presisi, dan terstruktur.',
 };
 
 function formatRupiah(n) {
@@ -77,7 +76,6 @@ export default async function Home(props) {
 
   const reportDate = new Date(parseInt(year), parseInt(month) - 2, 1);
   const reportMonth = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
-  const reportMonthLabel = formatMonthLabel(reportDate);
 
   const compareDate = new Date(parseInt(year), parseInt(month) - 3, 1);
   const compareMonth = `${compareDate.getFullYear()}-${String(compareDate.getMonth() + 1).padStart(2, '0')}`;
@@ -142,11 +140,6 @@ export default async function Home(props) {
       ? `Turun ${Math.abs(expenseDiffPct)}%`
       : 'Tetap sama';
 
-  const todayStr = now.toISOString().slice(0, 10);
-  const todayExpense = expenses
-    .filter(e => e.date.startsWith(todayStr) && e.type !== 'income')
-    .reduce((sum, e) => sum + e.amount, 0);
-
   const byCategory = expenses.reduce((acc, e) => {
     if (e.type === 'income') return acc;
     const c = e.category || 'Lainnya';
@@ -169,7 +162,6 @@ export default async function Home(props) {
 
   const trendData = Object.keys(trendDataMap).sort().map(key => {
     const [y, m] = key.split('-');
-    // Using manual format array for month names instead of toLocaleString to avoid Vercel ICU issues
     const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const monthName = `${shortMonths[parseInt(m) - 1]} '${y.slice(2)}`;
     return {
@@ -179,7 +171,6 @@ export default async function Home(props) {
     };
   });
 
-  // Calculate monthly insight text
   let insightText = '';
   if (previousExpense > 0) {
     if (expenseDiff < 0) {
@@ -216,7 +207,6 @@ export default async function Home(props) {
 
   const reportTemplate = (
     <div className="print-report-template">
-      {/* ... [PRINT TEMPLATE REMAINS EXACTLY THE SAME] ... */}
       <div className="print-report-header">
         <div className="print-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -376,9 +366,9 @@ export default async function Home(props) {
 
   return (
     <div className="wrap">
-      {/* Header */}
+      {/* Site Header */}
       <header className="site-header">
-        <div>
+        <div className="site-brand">
           <h1 className="site-title">ArthaFlow<span>.</span></h1>
         </div>
         <div className="site-header-right">
@@ -388,7 +378,7 @@ export default async function Home(props) {
         </div>
       </header>
 
-      {/* Financial Overview (replaces the 3 cards) */}
+      {/* Financial Hero (Copilot + Mercury hierarchy) */}
       <div className="fin-summary">
         <div className="fin-balance-label">Saldo bulan ini</div>
         <div className="fin-balance">
@@ -408,7 +398,7 @@ export default async function Home(props) {
         </div>
       </div>
 
-      {/* Budget Integration */}
+      {/* Budget Integration (Copilot Principle) */}
       <BudgetBar
         month={selectedMonth}
         monthLabel={monthLabel}
@@ -416,24 +406,23 @@ export default async function Home(props) {
         spent={monthSpent}
       />
 
-      {/* Monthly Insight (replaces large Laporan Bulanan card) */}
-      <div className="monthly-insight" style={{ borderLeft: '1px solid var(--border)', paddingLeft: '1rem', marginTop: '1rem' }}>
-        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Ringkasan</div>
-        <div>{insightText}</div>
+      {/* Monthly Insight */}
+      <div className="monthly-insight">
+        <span className="monthly-insight-label">RINGKASAN</span>
+        <p className="monthly-insight-text">{insightText}</p>
       </div>
 
+      {/* Primary Analytics Grid: 65% Cash Flow / 35% Category Breakdown */}
       <div className="analytics-grid">
-        {/* Primary Analytics (Trend/Cash flow) */}
         <TrendChart data={trendData} />
 
-        {/* Category Breakdown (Replaces Donut Chart) */}
         {expenses.length > 0 ? (
           <div className="category-breakdown">
             <div className="section-title">Pengeluaran terbesar</div>
-            <div>
+            <div className="cat-list">
               {Object.entries(byCategory)
                 .sort(([, a], [, b]) => b - a)
-                .slice(0, 5) // Show top 5
+                .slice(0, 5)
                 .map(([cat, amt]) => {
                   const pct = totalExpense > 0 ? Math.round((amt / totalExpense) * 100) : 0;
                   const categorySlug = encodeURIComponent(cat);
@@ -452,7 +441,7 @@ export default async function Home(props) {
                       <div className="cat-bar-track">
                         <div 
                           className="cat-bar-fill" 
-                          style={{ width: `${Math.max(pct, 2)}%`, background: 'var(--text-muted)' }} 
+                          style={{ width: `${Math.max(pct, 2)}%` }} 
                         />
                       </div>
                     </div>
@@ -460,16 +449,16 @@ export default async function Home(props) {
                 })}
             </div>
           </div>
-        ) : <div />}
+        ) : <div className="category-breakdown" />}
       </div>
 
-      {/* Financial Goals Preview */}
+      {/* Financial Goals (Monarch Influence) */}
       <FinancialGoals goals={goals} totalSavings={totalSavings} />
 
-      {/* Transactions */}
-      <div>
+      {/* Transactions Register (Actual + Lunch Money) */}
+      <div className="transactions-container">
         <div className="txn-header">
-          <div className="section-title" style={{ marginBottom: 0 }}>Transaksi</div>
+          <div className="section-title">Transaksi</div>
           <TransactionDialog
             expenseCategories={expenseCategories}
             incomeCategories={incomeCategories}

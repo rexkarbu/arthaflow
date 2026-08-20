@@ -11,16 +11,14 @@ function formatRupiah(n) {
   }).format(n);
 }
 
-export default function FinancialGoals({ goals, totalSavings }) {
+export default function FinancialGoals({ goals = [], totalSavings = 0 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [amountError, setAmountError] = useState('');
   const [expanded, setExpanded] = useState(false);
 
   async function handleAdd(e) {
     e.preventDefault();
     setLoading(true);
-    setAmountError('');
 
     const form = e.currentTarget;
     const fd = new FormData(form);
@@ -50,10 +48,10 @@ export default function FinancialGoals({ goals, totalSavings }) {
   return (
     <div className="goals-section">
       <div className="goals-header">
-        <div className="section-title" style={{ marginBottom: 0 }}>Tujuan</div>
+        <div className="section-title">Tujuan</div>
         {!isAdding && (
           <button onClick={() => setIsAdding(true)} className="goals-add-btn">
-            <Plus size={14} /> Tambah
+            <Plus size={13} /> Tambah
           </button>
         )}
       </div>
@@ -61,14 +59,28 @@ export default function FinancialGoals({ goals, totalSavings }) {
       {isAdding && (
         <form onSubmit={handleAdd} className="goal-form">
           <div className="field">
-            <input type="text" name="name" className="input" placeholder="Tujuan (cth. Dana Darurat)" required autoFocus />
+            <input
+              type="text"
+              name="name"
+              className="input"
+              placeholder="Nama tujuan (cth. Dana darurat, Liburan)"
+              required
+              autoFocus
+            />
           </div>
-          <div className="field" style={{ display: 'flex', gap: '0.5rem' }}>
-            <input type="number" name="target_amount" className="input" placeholder="Jumlah (Rp)" required min="1" style={{ flex: 1 }} />
-            <button type="submit" className="btn-submit" disabled={loading} style={{ width: 'auto', padding: '0 1rem' }}>
+          <div className="goal-form-row">
+            <input
+              type="number"
+              name="target_amount"
+              className="input"
+              placeholder="Target dana (Rp)"
+              required
+              min="1"
+            />
+            <button type="submit" className="btn-submit btn-submit--sm" disabled={loading}>
               {loading ? '...' : 'Simpan'}
             </button>
-            <button type="button" onClick={() => setIsAdding(false)} className="btn-cancel" style={{ width: 'auto', padding: '0 1rem' }}>
+            <button type="button" onClick={() => setIsAdding(false)} className="btn-cancel btn-cancel--sm">
               Batal
             </button>
           </div>
@@ -77,10 +89,10 @@ export default function FinancialGoals({ goals, totalSavings }) {
 
       {goals.length === 0 ? (
         <div className="goal-empty">
-          Belum ada target tabungan.
+          Belum ada target tabungan yang ditetapkan.
         </div>
       ) : (
-        <div>
+        <div className="goal-list">
           {visibleGoals.map(goal => {
             const progressPercentage = Math.min(100, Math.max(0, (totalSavings / goal.target_amount) * 100));
             const isAchieved = progressPercentage >= 100;
@@ -89,23 +101,23 @@ export default function FinancialGoals({ goals, totalSavings }) {
             return (
               <div key={goal.id} className="goal-item">
                 <div className="goal-top">
-                  <div>
-                    <div className={`goal-name ${isAchieved ? 'goal-name--achieved' : ''}`}>
-                      {goal.name}
-                    </div>
-                  </div>
+                  <span className={`goal-name ${isAchieved ? 'goal-name--achieved' : ''}`}>
+                    {goal.name}
+                  </span>
                   <form action={async () => {
                     await deleteGoal(goal.id);
                     toast.success('Target dihapus');
                   }}>
-                    <button type="submit" className="goal-delete-btn" title="Hapus target">
-                      <X size={14} />
+                    <button type="submit" className="goal-delete-btn" title="Hapus target" aria-label="Hapus target">
+                      <X size={13} />
                     </button>
                   </form>
                 </div>
                 
                 <div className="goal-amounts">
-                  {formatRupiah(totalSavings)} / {formatRupiah(goal.target_amount)}
+                  <span>{formatRupiah(totalSavings)}</span>
+                  <span className="goal-amount-sep">/</span>
+                  <span>{formatRupiah(goal.target_amount)}</span>
                 </div>
 
                 <div className="goal-track">
@@ -116,14 +128,14 @@ export default function FinancialGoals({ goals, totalSavings }) {
                 </div>
                 
                 <div className="goal-meta">
-                  <span className={`goal-pct ${isAchieved ? 'goal-pct--achieved' : ''}`}>
-                    {progressPercentage.toFixed(1)}%
-                  </span>
-                  {!isAchieved && (
-                    <span className="goal-remaining">
-                      Sisa {formatRupiah(remaining)}
-                    </span>
+                  {isAchieved ? (
+                    <span className="goal-status-achieved">Target tercapai</span>
+                  ) : (
+                    <span className="goal-remaining">Sisa {formatRupiah(remaining)}</span>
                   )}
+                  <span className={`goal-pct ${isAchieved ? 'goal-pct--achieved' : ''}`}>
+                    {progressPercentage.toFixed(0)}%
+                  </span>
                 </div>
               </div>
             );
@@ -133,13 +145,9 @@ export default function FinancialGoals({ goals, totalSavings }) {
             <button 
               type="button" 
               onClick={() => setExpanded(true)}
-              style={{
-                background: 'none', border: 'none', color: 'var(--text-muted)', 
-                fontSize: '0.8rem', cursor: 'pointer', padding: '0.5rem 0', width: '100%',
-                textAlign: 'left', marginTop: '0.5rem', fontFamily: 'inherit'
-              }}
+              className="goals-expand-btn"
             >
-              Lihat {hiddenCount} lainnya...
+              Lihat {hiddenCount} lainnya
             </button>
           )}
         </div>

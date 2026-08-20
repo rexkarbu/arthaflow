@@ -10,7 +10,7 @@ function formatRupiah(n) {
   }).format(n);
 }
 
-export default function ExpenseList({ expenses, expenseCategories = [], incomeCategories = [] }) {
+export default function ExpenseList({ expenses = [], expenseCategories = [], incomeCategories = [] }) {
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState('Semua');
   const [editId, setEditId] = useState(null);
@@ -56,8 +56,8 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
   }
 
   return (
-    <div>
-      {/* Filter bar */}
+    <div className="txn-register-section">
+      {/* Search & Filter Bar */}
       <div className="filter-bar">
         <div className="search-box">
           <Search size={14} className="search-icon" />
@@ -76,42 +76,42 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
         </div>
 
         <select
-          className="input"
+          className="cat-select"
           value={activeCat}
           onChange={(e) => setActiveCat(e.target.value)}
-          style={{ width: 'auto', minWidth: '140px', padding: '0.45rem 2rem 0.45rem 0.65rem', cursor: 'pointer' }}
           aria-label="Filter kategori"
         >
-          {usedCategories.map(cat => (
+          <option value="Semua">Semua kategori</option>
+          {usedCategories.filter(c => c !== 'Semua').map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
       </div>
 
-      {/* Result info */}
+      {/* Result info header */}
       <div className="list-head">
         <span className="list-title">
-          {activeCat !== 'Semua' || query ? 'Hasil filter' : 'Riwayat'}
+          {activeCat !== 'Semua' || query ? 'Hasil filter' : 'Riwayat transaksi'}
         </span>
         <div className="list-actions">
           <span className="list-count">
             {filtered.length} entri
             {filteredIncome > 0 && (
-              <span style={{ color: 'var(--income)' }}> · +{formatRupiah(filteredIncome)}</span>
+              <span className="list-count-income"> · +{formatRupiah(filteredIncome)}</span>
             )}
             {filteredExpense > 0 && (
-              <span style={{ color: 'var(--expense)' }}> · -{formatRupiah(filteredExpense)}</span>
+              <span className="list-count-expense"> · -{formatRupiah(filteredExpense)}</span>
             )}
           </span>
           {filtered.length > 0 && (
             <button onClick={exportToCSV} title="Export CSV" className="csv-btn">
-              <Download size={12} /> CSV
+              <Download size={11} /> CSV
             </button>
           )}
         </div>
       </div>
 
-      {/* List */}
+      {/* Transaction Register Rows */}
       {filtered.length === 0 ? (
         <div className="empty">
           {expenses.length === 0
@@ -131,9 +131,8 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                     <div className="edit-form-row">
                       <select
                         name="type"
-                        className="input"
+                        className="input edit-input-sm"
                         defaultValue={exp.type || 'expense'}
-                        style={{ width: 'auto', padding: '0.35rem' }}
                       >
                         <option value="expense">Pengeluaran</option>
                         <option value="income">Pemasukan</option>
@@ -141,16 +140,15 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                       <input
                         type="text"
                         name="description"
-                        className="input"
+                        className="input edit-input-sm"
                         defaultValue={exp.description}
                         required
-                        style={{ flex: 1, padding: '0.35rem' }}
+                        style={{ flex: 1 }}
                       />
                       <select
                         name="category"
-                        className="input"
+                        className="input edit-input-sm"
                         defaultValue={exp.category || 'Lainnya'}
-                        style={{ width: 'auto', padding: '0.35rem' }}
                       >
                         <option value={exp.category}>{exp.category}</option>
                         <optgroup label="Pengeluaran">
@@ -165,13 +163,13 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                       <input
                         type="text"
                         name="notes"
-                        className="input"
+                        className="input edit-input-sm"
                         defaultValue={exp.notes || ''}
                         placeholder="Catatan (opsional)"
-                        style={{ flex: 1, padding: '0.35rem' }}
+                        style={{ flex: 1 }}
                       />
                     </div>
-                    <div className="edit-form-row" style={{ alignItems: 'center' }}>
+                    <div className="edit-form-row edit-form-row--actions">
                       <div className="recurring-field">
                         <input
                           type="checkbox"
@@ -180,22 +178,22 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                           defaultChecked={!!exp.is_recurring}
                         />
                         <label htmlFor={`rec-${exp.id}`}>
-                          <Repeat size={11} style={{ marginRight: '0.15rem', verticalAlign: '-1px' }} /> Rutin
+                          <Repeat size={11} className="rec-icon" /> Rutin
                         </label>
                       </div>
                       <input
                         type="number"
                         name="amount"
-                        className="input"
+                        className="input edit-input-sm"
                         defaultValue={exp.amount}
                         min="1"
                         required
-                        style={{ flex: 1, padding: '0.35rem' }}
+                        style={{ flex: 1 }}
                       />
-                      <button type="submit" className="budget-save-btn" disabled={isPending} style={{ padding: '0.35rem 0.6rem' }}>
-                        <Check size={13} /> Simpan
+                      <button type="submit" className="budget-save-btn btn-save-sm" disabled={isPending}>
+                        <Check size={12} /> Simpan
                       </button>
-                      <button type="button" className="btn-action" onClick={() => setEditId(null)}>
+                      <button type="button" className="btn-cancel btn-cancel-sm" onClick={() => setEditId(null)}>
                         Batal
                       </button>
                     </div>
@@ -215,11 +213,11 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                   )}
                   <div className="expense-meta">
                     <span>{exp.category || 'Lainnya'}</span>
-                    <span>&middot;</span>
+                    <span className="expense-meta-sep">&middot;</span>
                     <span>{exp.dateStr}</span>
                     {exp.is_recurring === 1 && (
                       <>
-                        <span>&middot;</span>
+                        <span className="expense-meta-sep">&middot;</span>
                         <span className="recurring-badge">
                           <Repeat size={10} /> Rutin
                         </span>
@@ -227,16 +225,17 @@ export default function ExpenseList({ expenses, expenseCategories = [], incomeCa
                     )}
                   </div>
                 </div>
+
                 <div className="expense-right">
                   <div className={`expense-amount ${exp.type === 'income' ? 'expense-amount--income' : ''}`}>
                     {exp.type === 'income' ? '+' : '-'}{formatRupiah(exp.amount)}
                   </div>
                   <div className="expense-actions">
-                    <button type="button" className="btn-action" title="Edit" onClick={() => setEditId(exp.id)}>
+                    <button type="button" className="btn-action" title="Edit transaksi" onClick={() => setEditId(exp.id)}>
                       <Edit2 size={13} />
                     </button>
                     <form action={deleteExpense.bind(null, exp.id)}>
-                      <button type="submit" className="btn-action btn-action--danger" title="Hapus">
+                      <button type="submit" className="btn-action btn-action--danger" title="Hapus transaksi">
                         <Trash2 size={13} />
                       </button>
                     </form>
