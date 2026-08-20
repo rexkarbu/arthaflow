@@ -151,6 +151,33 @@ export async function logout() {
 
 // --- CRUD OPERATIONS ---
 
+export async function getAnalyticsData(startMonth, endMonth) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return [];
+  // startMonth and endMonth are 'YYYY-MM' strings.
+  // We use LIKE pattern: date >= startMonth-01 and date < nextMonthAfterEnd-01
+  // Simplification: compare date prefix slice against month strings (SQLite text comparison works correctly for ISO dates)
+  const res = await db.execute({
+    sql: `SELECT id, amount, description, date, category, type, is_recurring
+          FROM expenses
+          WHERE user_id = ?
+            AND substr(date, 1, 7) >= ?
+            AND substr(date, 1, 7) <= ?
+          ORDER BY date ASC`,
+    args: [userId, startMonth, endMonth]
+  });
+  return res.rows.map(r => ({
+    id: Number(r.id),
+    amount: Number(r.amount),
+    description: String(r.description ?? ''),
+    date: String(r.date ?? ''),
+    category: String(r.category ?? 'Lainnya'),
+    type: String(r.type ?? 'expense'),
+    is_recurring: Number(r.is_recurring ?? 0),
+  }));
+}
+
 export async function getExpenses() {
   await dbReady;
   const userId = await getAuthSession();

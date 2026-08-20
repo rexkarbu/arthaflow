@@ -27,14 +27,16 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export default function TrendChart({ data = [], periodLabel = '' }) {
+export default function TrendChart({ data = [], periodLabel = '', hideHeader = false }) {
   // Empty state: no data at all
   if (!data || data.length === 0) {
     return (
       <div className="trend-chart-section">
-        <div className="chart-header">
-          <div className="section-title">Arus kas</div>
-        </div>
+        {!hideHeader && (
+          <div className="chart-header">
+            <div className="section-title">Arus kas</div>
+          </div>
+        )}
         <div className="trend-empty">
           Belum ada data arus kas.
         </div>
@@ -63,10 +65,12 @@ export default function TrendChart({ data = [], periodLabel = '' }) {
 
     return (
       <div className="trend-chart-section trend-chart-section--compact">
-        <div className="chart-header">
-          <div className="section-title">Arus kas</div>
-          <span className="chart-period-text">{periodLabel || item.month}</span>
-        </div>
+        {!hideHeader && (
+          <div className="chart-header">
+            <div className="section-title">Arus kas</div>
+            <span className="chart-period-text">{periodLabel || item.month}</span>
+          </div>
+        )}
         <div className="trend-single-container">
           <div className="trend-single-row">
             <div className="trend-single-meta">
@@ -100,19 +104,21 @@ export default function TrendChart({ data = [], periodLabel = '' }) {
   // 2+ months state: Restrained LineChart
   return (
     <div className="trend-chart-section">
-      <div className="chart-header">
-        <div className="section-title">Arus kas</div>
-        <div className="chart-legend">
-          <div className="chart-legend-item">
-            <span className="legend-indicator legend-indicator--income" />
-            <span>Pemasukan</span>
-          </div>
-          <div className="chart-legend-item">
-            <span className="legend-indicator legend-indicator--expense" />
-            <span>Pengeluaran</span>
+      {!hideHeader && (
+        <div className="chart-header">
+          <div className="section-title">Arus kas</div>
+          <div className="chart-legend">
+            <div className="chart-legend-item">
+              <span className="legend-indicator legend-indicator--income" />
+              <span>Pemasukan</span>
+            </div>
+            <div className="chart-legend-item">
+              <span className="legend-indicator legend-indicator--expense" />
+              <span>Pengeluaran</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
       <div className="chart-container">
         <ResponsiveContainer width="100%" height="100%">

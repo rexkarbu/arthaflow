@@ -411,7 +411,18 @@ export default async function Home(props) {
       {/* Analytics Surface (Grouped Card Surface: 65% Cash Flow / 35% Category Ranking) */}
       <div className="analytics-surface">
         <div className="analytics-grid">
-          <TrendChart data={trendData} periodLabel={monthLabel} />
+          <div className="trend-chart-section-wrapper">
+            <div className="chart-header">
+              <div className="section-title">Arus kas</div>
+              <Link
+                href={selectedMonth ? `/analisis?month=${selectedMonth}` : '/analisis'}
+                className="chart-view-link"
+              >
+                Lihat analisis →
+              </Link>
+            </div>
+            <TrendChart data={trendData} periodLabel={monthLabel} hideHeader />
+          </div>
 
           {expenses.length > 0 ? (
             <div className="category-breakdown">

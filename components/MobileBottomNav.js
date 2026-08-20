@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ReceiptText, PieChart, Target } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, LineChart, PieChart, Target } from 'lucide-react';
 
 export default function MobileBottomNav({ currentMonth }) {
   const pathname = usePathname();
@@ -11,6 +11,7 @@ export default function MobileBottomNav({ currentMonth }) {
   const navItems = [
     { href: `/${monthQuery}`, label: 'Overview', icon: LayoutDashboard, isActive: pathname === '/' },
     { href: `/transaksi${monthQuery}`, label: 'Transaksi', icon: ReceiptText, isActive: pathname.startsWith('/transaksi') },
+    { href: `/analisis${monthQuery}`, label: 'Analisis', icon: LineChart, isActive: pathname.startsWith('/analisis') },
     { href: `/budget${monthQuery}`, label: 'Budget', icon: PieChart, isActive: pathname.startsWith('/budget') },
     { href: `/tujuan${monthQuery}`, label: 'Tujuan', icon: Target, isActive: pathname.startsWith('/tujuan') },
   ];

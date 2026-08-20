@@ -13,6 +13,7 @@ export default function AppHeader({ currentMonth }) {
   const navItems = [
     { href: `/${monthQuery}`, label: 'Overview', isActive: pathname === '/' },
     { href: `/transaksi${monthQuery}`, label: 'Transaksi', isActive: pathname.startsWith('/transaksi') },
+    { href: `/analisis${monthQuery}`, label: 'Analisis', isActive: pathname.startsWith('/analisis') },
     { href: `/budget${monthQuery}`, label: 'Budget', isActive: pathname.startsWith('/budget') },
     { href: `/tujuan${monthQuery}`, label: 'Tujuan', isActive: pathname.startsWith('/tujuan') },
   ];
