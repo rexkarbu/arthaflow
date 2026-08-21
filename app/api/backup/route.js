@@ -72,9 +72,9 @@ export async function GET() {
       args: [userId]
     });
 
-    // 9. Recurring Rules (Step 10)
+    // 9. Recurring Rules (Step 10 & 11)
     const recurringRulesRes = await db.execute({
-      sql: `SELECT id, name, type, amount, category, account_id, frequency, day_of_month, day_of_week, start_date, end_date, status, paused_at, resumed_date, note, created_at
+      sql: `SELECT id, name, type, amount, category, account_id, frequency, day_of_month, day_of_week, start_date, end_date, status, paused_at, resumed_date, pause_history, note, created_at
             FROM recurring_rules
             WHERE user_id = ?
             ORDER BY id ASC`,
@@ -133,6 +133,7 @@ export async function GET() {
           status: String(r.status ?? 'ACTIVE'),
           paused_at: r.paused_at ? String(r.paused_at) : null,
           resumed_date: r.resumed_date ? String(r.resumed_date) : null,
+          pause_history: r.pause_history ? String(r.pause_history) : '[]',
           note: String(r.note ?? ''),
           created_at: String(r.created_at ?? '')
         })),

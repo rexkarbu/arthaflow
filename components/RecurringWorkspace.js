@@ -32,6 +32,8 @@ import { toast } from 'sonner';
 export default function RecurringWorkspace({
   rules = [],
   occurrences = { pending: [], resolved: [] },
+  upcomingSchedule = null,
+  horizon = 30,
   categories = [],
   accounts = [],
   currentMonth
@@ -62,6 +64,7 @@ export default function RecurringWorkspace({
 
   const pendingOccurrences = occurrences.pending || [];
   const resolvedOccurrences = occurrences.resolved || [];
+  const upcomingItems = upcomingSchedule?.upcoming_items || [];
 
   const handleOpenCreateRule = () => {
     setEditingRule(null);
@@ -275,7 +278,117 @@ export default function RecurringWorkspace({
       </section>
 
       {/* ======================================================== */}
-      {/* SECTION 2: JADWAL AKTIF (Active Schedules)                */}
+      {/* SECTION 2: MENDATANG (Upcoming Commitments & Outlook)     */}
+      {/* ======================================================== */}
+      <section className="recurring-section" aria-labelledby="upcoming-section-title">
+        <div className="upcoming-section-top">
+          <div className="recurring-section-header" style={{ marginBottom: 0 }}>
+            <h2 id="upcoming-section-title" className="recurring-section-title">
+              Mendatang
+              {upcomingItems.length > 0 && (
+                <span className="recurring-badge-count">{upcomingItems.length}</span>
+              )}
+            </h2>
+          </div>
+
+          <div className="horizon-switch-group" role="tablist" aria-label="Pilih rentang hari mendatang">
+            {[7, 30, 60].map(h => {
+              const isActive = (horizon || 30) === h;
+              const queryObj = {};
+              if (currentMonth) queryObj.month = currentMonth;
+              if (h !== 30) queryObj.horizon = String(h);
+              const queryString = new URLSearchParams(queryObj).toString();
+              const url = `/rutin${queryString ? `?${queryString}` : ''}`;
+
+              return (
+                <Link
+                  key={h}
+                  href={url}
+                  className={`horizon-switch-btn ${isActive ? 'horizon-switch-btn--active' : ''}`}
+                  aria-selected={isActive}
+                  role="tab"
+                >
+                  {h} Hari
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Restrained Financial Strip Summary */}
+        <div className="upcoming-summary-strip">
+          <div className="upcoming-summary-item">
+            <span className="upcoming-summary-label">Masuk terjadwal</span>
+            <span className="upcoming-summary-val upcoming-summary-val--income">
+              +{formatRupiah(upcomingSchedule?.scheduled_income || 0)}
+            </span>
+          </div>
+          <div className="upcoming-summary-divider" />
+          <div className="upcoming-summary-item">
+            <span className="upcoming-summary-label">Keluar terjadwal</span>
+            <span className="upcoming-summary-val upcoming-summary-val--expense">
+              -{formatRupiah(upcomingSchedule?.scheduled_expense || 0)}
+            </span>
+          </div>
+          <div className="upcoming-summary-divider" />
+          <div className="upcoming-summary-item">
+            <span className="upcoming-summary-label">Selisih terjadwal</span>
+            <span className="upcoming-summary-val">
+              {(upcomingSchedule?.scheduled_net || 0) >= 0 ? '+' : ''}
+              {formatRupiah(upcomingSchedule?.scheduled_net || 0)}
+            </span>
+          </div>
+        </div>
+
+        {upcomingItems.length === 0 ? (
+          <div className="recurring-empty-card" style={{ marginTop: '0.75rem' }}>
+            <div className="recurring-empty-text">
+              Tidak ada transaksi yang terjadwal dalam {horizon || 30} hari ke depan.
+            </div>
+          </div>
+        ) : (
+          <div className="upcoming-timeline-list" style={{ marginTop: '0.75rem' }}>
+            {upcomingItems.map((item, idx) => (
+              <div key={`${item.rule_id}_${item.due_date}_${idx}`} className="upcoming-timeline-row">
+                <div className="upcoming-row-date">
+                  <span className="upcoming-date-text">{formatCompactDate(item.due_date)}</span>
+                </div>
+
+                <div className="upcoming-row-main">
+                  <div className="upcoming-row-name">{item.name}</div>
+                  <div className="upcoming-row-meta">
+                    <span>{item.category}</span>
+                    {item.account_name && (
+                      <>
+                        <span className="due-meta-dot">·</span>
+                        <span className={item.account_archived ? 'upcoming-archived-account-warning' : ''}>
+                          {item.account_name}
+                          {item.account_archived ? ' (Akun perlu diperbarui)' : ''}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="upcoming-row-status">
+                  <span className="upcoming-status-chip">
+                    Terjadwal
+                  </span>
+                </div>
+
+                <div className="upcoming-row-amount">
+                  <span className={`upcoming-amount-val ${item.type === 'income' ? 'upcoming-amount-val--income' : ''}`}>
+                    {item.type === 'income' ? '+' : '-'}{formatRupiah(item.amount)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ======================================================== */}
+      {/* SECTION 3: JADWAL AKTIF (Active Schedules)                */}
       {/* ======================================================== */}
       <section className="recurring-section" aria-labelledby="active-rules-title">
         <div className="recurring-section-header">
@@ -306,7 +419,14 @@ export default function RecurringWorkspace({
               <div key={rule.id} className="rule-row">
                 <div className="rule-col rule-col--name">
                   <div className="rule-name">{rule.name}</div>
-                  <div className="rule-cat-meta">{rule.category}</div>
+                  <div className="rule-cat-meta">
+                    {rule.category}
+                    {rule.is_corrupted && (
+                      <span style={{ color: 'var(--expense)', marginLeft: '0.35rem', fontSize: '0.68rem', fontWeight: 500 }}>
+                        · Jadwal perlu diperiksa
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rule-col rule-col--schedule">

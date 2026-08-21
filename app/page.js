@@ -1,4 +1,12 @@
-import { getExpenses, getBudget, getAuthSession, getCategories, getGoals, getAccounts } from './actions';
+import { 
+  getExpenses, 
+  getBudget, 
+  getAuthSession, 
+  getCategories, 
+  getGoals, 
+  getAccounts,
+  getUpcomingRecurringSchedule 
+} from './actions';
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
@@ -31,11 +39,14 @@ export default async function Home(props) {
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const selectedMonth = monthParam || currentMonth;
 
-  const rawExpenses = await getExpenses();
-  const expenseCategories = await getCategories('expense');
-  const incomeCategories = await getCategories('income');
-  const goals = await getGoals();
-  const accounts = await getAccounts(selectedMonth);
+  const [rawExpenses, expenseCategories, incomeCategories, goals, accounts, upcomingSchedule] = await Promise.all([
+    getExpenses(),
+    getCategories('expense'),
+    getCategories('income'),
+    getGoals(),
+    getAccounts(selectedMonth),
+    getUpcomingRecurringSchedule({ horizonDays: 30 })
+  ]);
   
   let allTimeIncome = 0;
   let allTimeExpense = 0;
@@ -441,6 +452,53 @@ export default async function Home(props) {
 
       {/* Overview Account Preview */}
       <AccountOverview accounts={accounts} currentMonth={selectedMonth} />
+
+      {/* Overview Upcoming Scheduled Preview (Max 3 items, strictly informational) */}
+      <div className="upcoming-preview-container">
+        <div className="upcoming-preview-header">
+          <div className="section-title">Mendatang</div>
+          <Link
+            href={selectedMonth ? `/rutin?month=${selectedMonth}` : '/rutin'}
+            className="chart-view-link"
+          >
+            Lihat semua jadwal →
+          </Link>
+        </div>
+
+        {(!upcomingSchedule?.upcoming_items || upcomingSchedule.upcoming_items.length === 0) ? (
+          <div className="upcoming-preview-empty">
+            <span>Belum ada transaksi rutin terjadwal.</span>
+            <Link
+              href={selectedMonth ? `/rutin?month=${selectedMonth}` : '/rutin'}
+              className="upcoming-empty-manage-link"
+            >
+              Kelola rutin →
+            </Link>
+          </div>
+        ) : (
+          <div className="upcoming-preview-list">
+            {upcomingSchedule.upcoming_items.slice(0, 3).map((item, idx) => (
+              <div key={`${item.rule_id}_${item.due_date}_${idx}`} className="upcoming-preview-row">
+                <div className="upcoming-preview-date">
+                  <span>{formatCompactDate(item.due_date)}</span>
+                </div>
+                <div className="upcoming-preview-info">
+                  <span className="upcoming-preview-name">{item.name}</span>
+                  <span className="upcoming-preview-meta">
+                    {item.category}
+                    {item.account_name && ` · ${item.account_name}`}
+                  </span>
+                </div>
+                <div className="upcoming-preview-amount">
+                  <span className={`upcoming-amount-val ${item.type === 'income' ? 'upcoming-amount-val--income' : ''}`}>
+                    {item.type === 'income' ? '+' : '-'}{formatRupiah(item.amount)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Transactions Overview Preview (Max 10 rows, simplified dates, context-aware footer link) */}
       <div className="transactions-container">

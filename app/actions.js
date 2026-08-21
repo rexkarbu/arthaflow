@@ -16,7 +16,11 @@ import {
 import {
   computeDueCandidateDates,
   computeNextDueDate,
-  getTodayDateStr
+  computeFutureVirtualDates,
+  parsePauseHistory,
+  getPauseHistoryState,
+  getTodayDateStr,
+  addDays
 } from '@/lib/recurrence';
 
 // --- AUTH & SESSIONS ---
@@ -1595,6 +1599,7 @@ export async function getRecurringRules() {
             r.status,
             r.paused_at,
             r.resumed_date,
+            r.pause_history,
             r.note,
             r.created_at,
             r.updated_at,
@@ -1637,12 +1642,16 @@ export async function getRecurringRules() {
       status: String(r.status ?? 'ACTIVE'),
       paused_at: r.paused_at ? String(r.paused_at) : null,
       resumed_date: r.resumed_date ? String(r.resumed_date) : null,
+      pause_history: r.pause_history ? String(r.pause_history) : '[]',
       note: String(r.note ?? ''),
       created_at: String(r.created_at ?? ''),
       updated_at: String(r.updated_at ?? '')
     };
 
-    plainRule.next_due_date = r.status === 'ACTIVE'
+    const pauseState = getPauseHistoryState(plainRule);
+    plainRule.is_corrupted = pauseState.isCorrupted;
+
+    plainRule.next_due_date = r.status === 'ACTIVE' && !plainRule.is_corrupted
       ? computeNextDueDate(plainRule, todayStr)
       : null;
 
@@ -1734,7 +1743,9 @@ export async function getRecurringOccurrences() {
     };
 
     if (plainOcc.status === 'PENDING') {
-      pending.push(plainOcc);
+      if (dueDateStr <= todayStr) {
+        pending.push(plainOcc);
+      }
     } else {
       resolved.push(plainOcc);
     }
@@ -1947,18 +1958,44 @@ export async function pauseRecurringRule(id) {
   const ruleId = Number(id);
   const todayStr = getTodayDateStr();
 
-  const res = await db.execute({
-    sql: `UPDATE recurring_rules 
-          SET status = 'PAUSED', paused_at = ?, updated_at = ? 
-          WHERE id = ? AND user_id = ? AND status = 'ACTIVE'`,
-    args: [todayStr, new Date().toISOString(), ruleId, userId]
-  });
+  const tx = await db.transaction('write');
+  try {
+    const ruleRes = await tx.execute({
+      sql: 'SELECT id, user_id, status, pause_history FROM recurring_rules WHERE id = ? AND user_id = ?',
+      args: [ruleId, userId]
+    });
 
-  if (res.rowsAffected === 0) {
-    return { success: false, error: 'Jadwal rutin tidak ditemukan atau sudah tidak aktif.' };
+    if (ruleRes.rows.length === 0) {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+    }
+
+    const rule = ruleRes.rows[0];
+    if (rule.status !== 'ACTIVE') {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin tidak sedang aktif atau sudah diarsipkan.' };
+    }
+
+    const currentIntervals = parsePauseHistory(rule);
+    // Add open pause interval [todayStr, null]
+    const updatedIntervals = currentIntervals.filter(item => item.end != null);
+    updatedIntervals.push({ start: todayStr, end: null });
+
+    await tx.execute({
+      sql: `UPDATE recurring_rules 
+            SET status = 'PAUSED', paused_at = ?, pause_history = ?, updated_at = ? 
+            WHERE id = ? AND user_id = ?`,
+      args: [todayStr, JSON.stringify(updatedIntervals), new Date().toISOString(), ruleId, userId]
+    });
+
+    await tx.commit();
+  } catch (err) {
+    await tx.rollback();
+    throw err;
   }
 
   revalidatePath('/rutin');
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -1970,20 +2007,48 @@ export async function resumeRecurringRule(id) {
   const ruleId = Number(id);
   const todayStr = getTodayDateStr();
 
-  const res = await db.execute({
-    sql: `UPDATE recurring_rules 
-          SET status = 'ACTIVE', resumed_date = ?, updated_at = ? 
-          WHERE id = ? AND user_id = ? AND status = 'PAUSED'`,
-    args: [todayStr, new Date().toISOString(), ruleId, userId]
-  });
+  const tx = await db.transaction('write');
+  try {
+    const ruleRes = await tx.execute({
+      sql: 'SELECT id, user_id, status, paused_at, pause_history FROM recurring_rules WHERE id = ? AND user_id = ?',
+      args: [ruleId, userId]
+    });
 
-  if (res.rowsAffected === 0) {
-    return { success: false, error: 'Jadwal rutin tidak ditemukan atau tidak sedang dijeda.' };
+    if (ruleRes.rows.length === 0) {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+    }
+
+    const rule = ruleRes.rows[0];
+    if (rule.status !== 'PAUSED') {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin tidak sedang dijeda.' };
+    }
+
+    const currentIntervals = parsePauseHistory(rule);
+    const start = rule.paused_at ? String(rule.paused_at).slice(0, 10) : todayStr;
+    
+    // Add the completed interval [start, todayStr]
+    const updatedIntervals = currentIntervals.filter(item => !(item.start === start && (!item.end || item.end === todayStr)));
+    updatedIntervals.push({ start, end: todayStr });
+
+    await tx.execute({
+      sql: `UPDATE recurring_rules 
+            SET status = 'ACTIVE', resumed_date = ?, pause_history = ?, updated_at = ? 
+            WHERE id = ? AND user_id = ?`,
+      args: [todayStr, JSON.stringify(updatedIntervals), new Date().toISOString(), ruleId, userId]
+    });
+
+    await tx.commit();
+  } catch (err) {
+    await tx.rollback();
+    throw err;
   }
 
   await materializeDueOccurrences(userId);
 
   revalidatePath('/rutin');
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -1994,18 +2059,39 @@ export async function archiveRecurringRule(id) {
 
   const ruleId = Number(id);
 
-  const res = await db.execute({
-    sql: `UPDATE recurring_rules 
-          SET status = 'ARCHIVED', updated_at = ? 
-          WHERE id = ? AND user_id = ?`,
-    args: [new Date().toISOString(), ruleId, userId]
-  });
+  const tx = await db.transaction('write');
+  try {
+    const ruleRes = await tx.execute({
+      sql: 'SELECT id, user_id, status FROM recurring_rules WHERE id = ? AND user_id = ?',
+      args: [ruleId, userId]
+    });
 
-  if (res.rowsAffected === 0) {
-    return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+    if (ruleRes.rows.length === 0) {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+    }
+
+    const rule = ruleRes.rows[0];
+    if (rule.status === 'ARCHIVED') {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin sudah diarsipkan.' };
+    }
+
+    await tx.execute({
+      sql: `UPDATE recurring_rules 
+            SET status = 'ARCHIVED', updated_at = ? 
+            WHERE id = ? AND user_id = ?`,
+      args: [new Date().toISOString(), ruleId, userId]
+    });
+
+    await tx.commit();
+  } catch (err) {
+    await tx.rollback();
+    throw err;
   }
 
   revalidatePath('/rutin');
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -2031,6 +2117,7 @@ export async function skipRecurringOccurrence(id) {
   }
 
   revalidatePath('/rutin');
+  revalidatePath('/');
   return { success: true };
 }
 
@@ -2161,4 +2248,213 @@ export async function recordRecurringOccurrence(formData) {
   revalidatePath('/budget');
   return { success: true };
 }
+
+// --- UPCOMING COMMITMENTS & CASH OUTLOOK (STEP 11) ---
+
+export async function getUpcomingRecurringSchedule({ horizonDays = 30 } = {}) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) {
+    const today = getTodayDateStr();
+    return {
+      today,
+      horizon_days: 30,
+      horizon_end: addDays(today, 30),
+      scheduled_income: 0,
+      scheduled_expense: 0,
+      scheduled_net: 0,
+      upcoming_items: [],
+      overdue_count: 0
+    };
+  }
+
+  // 1. Validate horizon (whitelist: 7, 30, 60. Default to 30)
+  const parsedHorizon = parseInt(horizonDays, 10);
+  const validatedHorizon = [7, 30, 60].includes(parsedHorizon) ? parsedHorizon : 30;
+
+  const today = getTodayDateStr();
+  const horizonEnd = addDays(today, validatedHorizon);
+
+  // 2. Query user's recurring rules
+  const rulesRes = await db.execute({
+    sql: `SELECT 
+            r.id, r.user_id, r.name, r.type, r.amount, r.category, r.account_id,
+            r.frequency, r.day_of_month, r.day_of_week, r.start_date, r.end_date,
+            r.status, r.paused_at, r.resumed_date, r.pause_history, r.note,
+            a.name AS account_name, a.type AS account_type, a.archived_at AS account_archived_at
+          FROM recurring_rules r
+          LEFT JOIN accounts a ON a.id = r.account_id AND a.user_id = r.user_id
+          WHERE r.user_id = ?`,
+    args: [userId]
+  });
+
+  // 3. Query user's persisted occurrences
+  const occRes = await db.execute({
+    sql: `SELECT 
+            o.id, o.user_id, o.rule_id, o.due_date, o.name, o.type, o.amount, o.category,
+            o.account_id, o.note, o.status, o.transaction_id, o.resolved_at,
+            a.name AS account_name, a.type AS account_type, a.archived_at AS account_archived_at
+          FROM recurring_occurrences o
+          LEFT JOIN accounts a ON a.id = o.account_id AND a.user_id = o.user_id
+          WHERE o.user_id = ?`,
+    args: [userId]
+  });
+
+  let overdueCount = 0;
+  const existingOccMap = new Map();
+
+  for (const row of occRes.rows) {
+    const dueDateStr = String(row.due_date ?? '').slice(0, 10);
+    const key = `${row.rule_id}_${dueDateStr}`;
+    existingOccMap.set(key, {
+      id: Number(row.id),
+      user_id: Number(row.user_id),
+      rule_id: Number(row.rule_id),
+      due_date: dueDateStr,
+      name: String(row.name ?? ''),
+      type: String(row.type ?? 'expense'),
+      amount: Number(row.amount ?? 0),
+      category: String(row.category ?? 'Lainnya'),
+      account_id: row.account_id != null ? Number(row.account_id) : null,
+      account_name: row.account_name ? String(row.account_name) : null,
+      account_type: row.account_type ? String(row.account_type) : null,
+      account_archived: !!row.account_archived_at,
+      status: String(row.status ?? 'PENDING'),
+      note: String(row.note ?? '')
+    });
+
+    if (row.status === 'PENDING' && dueDateStr < today) {
+      overdueCount++;
+    }
+  }
+
+  const upcomingItems = [];
+  const processedKeys = new Set();
+
+  // 4. Generate future virtual dates for ACTIVE rules strictly in (today, horizonEnd]
+  for (const r of rulesRes.rows) {
+    const plainRule = {
+      id: Number(r.id),
+      user_id: Number(r.user_id),
+      name: String(r.name ?? ''),
+      type: String(r.type ?? 'expense'),
+      amount: Number(r.amount ?? 0),
+      category: String(r.category ?? 'Lainnya'),
+      account_id: r.account_id != null ? Number(r.account_id) : null,
+      account_name: r.account_name ? String(r.account_name) : null,
+      account_type: r.account_type ? String(r.account_type) : null,
+      account_archived: !!r.account_archived_at,
+      frequency: String(r.frequency ?? 'monthly'),
+      day_of_month: r.day_of_month != null ? Number(r.day_of_month) : null,
+      day_of_week: r.day_of_week != null ? Number(r.day_of_week) : null,
+      start_date: String(r.start_date ?? ''),
+      end_date: r.end_date ? String(r.end_date) : null,
+      status: String(r.status ?? 'ACTIVE'),
+      paused_at: r.paused_at ? String(r.paused_at) : null,
+      resumed_date: r.resumed_date ? String(r.resumed_date) : null,
+      pause_history: r.pause_history ? String(r.pause_history) : '[]',
+      note: String(r.note ?? '')
+    };
+
+    if (plainRule.status === 'ACTIVE') {
+      const virtualDates = computeFutureVirtualDates(plainRule, today, horizonEnd, 60);
+      for (const d of virtualDates) {
+        const key = `${plainRule.id}_${d}`;
+        processedKeys.add(key);
+
+        if (existingOccMap.has(key)) {
+          const occ = existingOccMap.get(key);
+          if (occ.status !== 'SKIPPED') {
+            upcomingItems.push({
+              kind: 'occurrence',
+              rule_id: plainRule.id,
+              occurrence_id: occ.id,
+              due_date: d,
+              name: occ.name,
+              type: occ.type,
+              amount: occ.amount,
+              category: occ.category,
+              account_id: occ.account_id,
+              account_name: occ.account_name,
+              account_archived: occ.account_archived,
+              status: occ.status,
+              note: occ.note,
+              is_actionable: false // Actionable only when due_date <= today
+            });
+          }
+        } else {
+          upcomingItems.push({
+            kind: 'virtual',
+            rule_id: plainRule.id,
+            occurrence_id: null,
+            due_date: d,
+            name: plainRule.name,
+            type: plainRule.type,
+            amount: plainRule.amount,
+            category: plainRule.category,
+            account_id: plainRule.account_id,
+            account_name: plainRule.account_name,
+            account_archived: plainRule.account_archived,
+            status: 'SCHEDULED',
+            note: plainRule.note,
+            is_actionable: false
+          });
+        }
+      }
+    }
+  }
+
+  // 5. Include any other persisted occurrences in (today, horizonEnd] that might belong to paused/archived rules
+  for (const [key, occ] of existingOccMap.entries()) {
+    if (!processedKeys.has(key)) {
+      if (occ.due_date > today && occ.due_date <= horizonEnd && occ.status !== 'SKIPPED') {
+        upcomingItems.push({
+          kind: 'occurrence',
+          rule_id: occ.rule_id,
+          occurrence_id: occ.id,
+          due_date: occ.due_date,
+          name: occ.name,
+          type: occ.type,
+          amount: occ.amount,
+          category: occ.category,
+          account_id: occ.account_id,
+          account_name: occ.account_name,
+          account_archived: occ.account_archived,
+          status: occ.status,
+          note: occ.note,
+          is_actionable: false
+        });
+      }
+    }
+  }
+
+  // 6. Chronological sort (due_date ASC, rule_id ASC)
+  upcomingItems.sort((a, b) => a.due_date.localeCompare(b.due_date) || a.rule_id - b.rule_id);
+
+  // 7. Calculate horizon totals (whole integer Rupiah)
+  let scheduledIncome = 0;
+  let scheduledExpense = 0;
+
+  for (const item of upcomingItems) {
+    if (item.type === 'income') {
+      scheduledIncome += item.amount;
+    } else {
+      scheduledExpense += item.amount;
+    }
+  }
+
+  const scheduledNet = scheduledIncome - scheduledExpense;
+
+  return {
+    today,
+    horizon_days: validatedHorizon,
+    horizon_end: horizonEnd,
+    scheduled_income: Math.round(scheduledIncome),
+    scheduled_expense: Math.round(scheduledExpense),
+    scheduled_net: Math.round(scheduledNet),
+    upcoming_items: upcomingItems,
+    overdue_count: overdueCount
+  };
+}
+
 
