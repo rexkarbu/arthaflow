@@ -1,4 +1,4 @@
-import { getExpenses, getAuthSession, seedRecurringExpenses, getCategories } from '@/app/actions';
+import { getExpenses, getAuthSession, seedRecurringExpenses, getCategories, getAccounts } from '@/app/actions';
 import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
 import LoginForm from '@/components/LoginForm';
@@ -29,6 +29,7 @@ export default async function TransactionsPage(props) {
   const rawExpenses = await getExpenses();
   const expenseCategories = await getCategories('expense');
   const incomeCategories = await getCategories('income');
+  const accounts = await getAccounts(selectedMonth);
 
   const [year, month] = selectedMonth.split('-');
   const dateObj = new Date(parseInt(year), parseInt(month) - 1);
@@ -52,6 +53,7 @@ export default async function TransactionsPage(props) {
         <TransactionDialog
           expenseCategories={expenseCategories}
           incomeCategories={incomeCategories}
+          accounts={accounts}
         />
       </div>
 
@@ -60,6 +62,7 @@ export default async function TransactionsPage(props) {
         expenses={expenses}
         expenseCategories={expenseCategories}
         incomeCategories={incomeCategories}
+        accounts={accounts}
         mode="full"
       />
     </AppShell>

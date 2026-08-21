@@ -7,16 +7,25 @@ import { toast } from 'sonner';
 import CurrencyInput from './CurrencyInput';
 import { parseCurrency } from '@/lib/currency';
 
-export default function ExpenseForm({ expenseCategories = [], incomeCategories = [], onSuccess }) {
-  const [type, setType] = useState('expense');
+export default function ExpenseForm({
+  expenseCategories = [],
+  incomeCategories = [],
+  accounts = [],
+  initialType = 'expense',
+  initialAccountId = null,
+  onSuccess
+}) {
+  const [type, setType] = useState(initialType || 'expense');
   const [loading, setLoading] = useState(false);
   const [showNewCat, setShowNewCat] = useState(false);
   const [amountError, setAmountError] = useState('');
+  const [accountError, setAccountError] = useState('');
   const formRef = useRef(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setAccountError('');
     const form = e.currentTarget;
     const fd = new FormData(form);
 
@@ -49,13 +58,19 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
     }
 
     try {
-      await addExpense(fd);
+      const res = await addExpense(fd);
+      if (res && res.success === false) {
+        setAccountError(res.error || 'Gagal menyimpan data.');
+        toast.error(res.error || 'Gagal menyimpan data.');
+        return;
+      }
       form.reset();
       setShowNewCat(false);
+      setAccountError('');
       toast.success(type === 'expense' ? 'Pengeluaran berhasil dicatat' : 'Pemasukan berhasil dicatat');
       if (onSuccess) onSuccess();
     } catch (err) {
-      toast.error('Gagal menyimpan data.');
+      toast.error(err?.message || 'Gagal menyimpan data.');
     } finally {
       setLoading(false);
     }
@@ -154,6 +169,35 @@ export default function ExpenseForm({ expenseCategories = [], incomeCategories =
             >
               Batal
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Account */}
+      <div className="field">
+        <label htmlFor="account_id" className="label">
+          Akun <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opsional)</span>
+        </label>
+        <select
+          id="account_id"
+          name="account_id"
+          className="input"
+          defaultValue={initialAccountId ? String(initialAccountId) : '__UNASSIGNED__'}
+          onChange={() => setAccountError('')}
+        >
+          <option value="__UNASSIGNED__">Belum dialokasikan</option>
+          {accounts.map(acc => (
+            <option key={acc.id} value={acc.id}>
+              {acc.name} ({acc.type_label || acc.type})
+            </option>
+          ))}
+        </select>
+        {accountError && (
+          <div className="form-error" style={{ marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span>{accountError}</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Ubah tanggal mulai pelacakan akun atau pilih akun lain.
+            </span>
           </div>
         )}
       </div>

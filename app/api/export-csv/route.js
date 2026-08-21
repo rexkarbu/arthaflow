@@ -31,14 +31,24 @@ export async function GET() {
 
   try {
     const res = await db.execute({
-      sql: `SELECT id, amount, description, date, category, notes, is_recurring, type 
-            FROM expenses 
-            WHERE user_id = ? 
-            ORDER BY date DESC, id DESC`,
+      sql: `SELECT 
+              e.id, 
+              e.amount, 
+              e.description, 
+              e.date, 
+              e.category, 
+              e.notes, 
+              e.is_recurring, 
+              e.type,
+              a.name AS account_name
+            FROM expenses e
+            LEFT JOIN accounts a ON e.account_id = a.id AND a.user_id = e.user_id
+            WHERE e.user_id = ? 
+            ORDER BY e.date DESC, e.id DESC`,
       args: [userId]
     });
 
-    const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Deskripsi', 'Catatan', 'Jumlah', 'Rutin'];
+    const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Akun', 'Deskripsi', 'Catatan', 'Jumlah', 'Rutin'];
     const rows = res.rows.map(r => {
       const typeLabel = r.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
       const recurringLabel = r.is_recurring === 1 ? 'Ya' : 'Tidak';
@@ -49,6 +59,7 @@ export async function GET() {
         escapeCsvText(r.date),
         escapeCsvText(typeLabel),
         escapeCsvText(r.category || 'Lainnya'),
+        escapeCsvText(r.account_name || 'Belum dialokasikan'),
         escapeCsvText(r.description || ''),
         escapeCsvText(r.notes || ''),
         amountVal, // Pure numeric value (formula safe, keeps calculations valid)

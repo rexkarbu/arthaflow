@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Plus, X } from 'lucide-react';
 import ExpenseForm from './ExpenseForm';
 
-export default function TransactionDialog({ expenseCategories, incomeCategories }) {
+export default function TransactionDialog({ expenseCategories, incomeCategories, accounts = [] }) {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef(null);
   const triggerRef = useRef(null);
@@ -111,6 +111,7 @@ export default function TransactionDialog({ expenseCategories, incomeCategories 
             <ExpenseForm
               expenseCategories={expenseCategories}
               incomeCategories={incomeCategories}
+              accounts={accounts}
               onSuccess={close}
             />
           </div>

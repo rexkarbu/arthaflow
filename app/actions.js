@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { parseCurrency } from '@/lib/currency';
+import { formatFullDate } from '@/lib/format';
 import {
   sanitizeText,
   sanitizeDescription,
@@ -208,7 +209,24 @@ export async function getExpenses() {
   const userId = await getAuthSession();
   if (!userId) return [];
   const res = await db.execute({
-    sql: 'SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC, id DESC',
+    sql: `SELECT 
+            e.id,
+            e.user_id,
+            e.amount,
+            e.description,
+            e.date,
+            e.category,
+            e.notes,
+            e.is_recurring,
+            e.type,
+            e.account_id,
+            a.name AS account_name,
+            a.type AS account_type,
+            a.archived_at AS account_archived_at
+          FROM expenses e
+          LEFT JOIN accounts a ON e.account_id = a.id AND a.user_id = e.user_id
+          WHERE e.user_id = ? 
+          ORDER BY e.date DESC, e.id DESC`,
     args: [userId]
   });
   return res.rows.map(r => ({
@@ -220,7 +238,11 @@ export async function getExpenses() {
     category: String(r.category ?? 'Lainnya'),
     notes: r.notes ? String(r.notes) : '',
     is_recurring: Number(r.is_recurring ?? 0),
-    type: String(r.type ?? 'expense')
+    type: String(r.type ?? 'expense'),
+    account_id: r.account_id != null ? Number(r.account_id) : null,
+    account_name: r.account_name ? String(r.account_name) : null,
+    account_type: r.account_type ? String(r.account_type) : null,
+    account_archived: r.account_archived_at != null
   }));
 }
 
@@ -234,15 +256,52 @@ export async function addExpense(formData) {
   const category = sanitizeCategoryName(formData.get('category'));
   const notes = sanitizeText(formData.get('notes'), 255);
   const isRecurring = formData.get('is_recurring') === 'on' ? 1 : 0;
-  const date = new Date().toISOString();
+  const date = String(formData.get('date') || new Date().toISOString());
 
-  if (amount <= 0 || !description) throw new Error('Invalid input');
+  if (amount <= 0) {
+    return { success: false, error: 'Jumlah harus lebih besar dari 0.' };
+  }
+  if (!description) {
+    return { success: false, error: 'Keterangan transaksi wajib diisi.' };
+  }
+
+  const accountIdRaw = formData.get('account_id');
+  let targetAccountId = null;
+
+  if (accountIdRaw && accountIdRaw !== '__UNASSIGNED__' && accountIdRaw !== '') {
+    const parsedId = parseInt(accountIdRaw, 10);
+    if (!isNaN(parsedId)) {
+      const accRes = await db.execute({
+        sql: 'SELECT id, name, opening_date, archived_at FROM accounts WHERE id = ? AND user_id = ?',
+        args: [parsedId, userId]
+      });
+      if (accRes.rows.length === 0) {
+        return { success: false, error: 'Akun tidak valid atau tidak ditemukan.' };
+      }
+      const acc = accRes.rows[0];
+      if (acc.archived_at) {
+        return { success: false, error: 'Tidak dapat mencatat transaksi pada akun yang diarsipkan.' };
+      }
+      const txDatePrefix = date.slice(0, 10);
+      if (txDatePrefix < String(acc.opening_date).slice(0, 10)) {
+        const formattedOpening = formatFullDate(acc.opening_date);
+        return {
+          success: false,
+          error: `Transaksi ini terjadi sebelum tanggal mulai ${acc.name} (${formattedOpening}).`
+        };
+      }
+      targetAccountId = parsedId;
+    }
+  }
 
   await db.execute({
-    sql: 'INSERT INTO expenses (user_id, amount, description, date, category, notes, is_recurring, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [userId, amount, description, date, category, notes, isRecurring, type]
+    sql: 'INSERT INTO expenses (user_id, amount, description, date, category, notes, is_recurring, type, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [userId, amount, description, date, category, notes, isRecurring, type, targetAccountId]
   });
   revalidatePath('/');
+  revalidatePath('/transaksi');
+  revalidatePath('/akun');
+  return { success: true };
 }
 
 export async function deleteExpense(id) {
@@ -254,6 +313,9 @@ export async function deleteExpense(id) {
     args: [id, userId]
   });
   revalidatePath('/');
+  revalidatePath('/transaksi');
+  revalidatePath('/akun');
+  return { success: true };
 }
 
 export async function updateExpense(formData) {
@@ -268,13 +330,62 @@ export async function updateExpense(formData) {
   const notes = sanitizeText(formData.get('notes'), 255);
   const isRecurring = formData.get('is_recurring') === 'on' ? 1 : 0;
 
-  if (isNaN(id) || amount <= 0 || !description) throw new Error('Invalid input');
+  if (isNaN(id) || amount <= 0 || !description) {
+    return { success: false, error: 'Data transaksi tidak valid atau belum lengkap.' };
+  }
+
+  // Verify existing expense ownership
+  const existingExpRes = await db.execute({
+    sql: 'SELECT id, date, account_id FROM expenses WHERE id = ? AND user_id = ?',
+    args: [id, userId]
+  });
+  if (existingExpRes.rows.length === 0) {
+    return { success: false, error: 'Transaksi tidak ditemukan.' };
+  }
+  const existingExp = existingExpRes.rows[0];
+
+  const accountIdRaw = formData.get('account_id');
+  let targetAccountId = existingExp.account_id != null ? Number(existingExp.account_id) : null;
+
+  if (accountIdRaw !== undefined && accountIdRaw !== null) {
+    if (accountIdRaw === '__UNASSIGNED__' || accountIdRaw === '') {
+      targetAccountId = null;
+    } else {
+      const parsedId = parseInt(accountIdRaw, 10);
+      if (!isNaN(parsedId)) {
+        const accRes = await db.execute({
+          sql: 'SELECT id, name, opening_date, archived_at FROM accounts WHERE id = ? AND user_id = ?',
+          args: [parsedId, userId]
+        });
+        if (accRes.rows.length === 0) {
+          return { success: false, error: 'Akun tidak valid.' };
+        }
+        const acc = accRes.rows[0];
+        // Allow keeping existing account relationship even if archived, but block switching TO a different archived account
+        if (acc.archived_at && Number(existingExp.account_id) !== parsedId) {
+          return { success: false, error: 'Tidak dapat memindahkan transaksi ke akun yang diarsipkan.' };
+        }
+        const txDatePrefix = String(existingExp.date).slice(0, 10);
+        if (txDatePrefix < String(acc.opening_date).slice(0, 10)) {
+          const formattedOpening = formatFullDate(acc.opening_date);
+          return {
+            success: false,
+            error: `Transaksi ini terjadi sebelum tanggal mulai ${acc.name} (${formattedOpening}).`
+          };
+        }
+        targetAccountId = parsedId;
+      }
+    }
+  }
 
   await db.execute({
-    sql: 'UPDATE expenses SET amount = ?, description = ?, category = ?, notes = ?, is_recurring = ?, type = ? WHERE id = ? AND user_id = ?',
-    args: [amount, description, category, notes, isRecurring, type, id, userId]
+    sql: 'UPDATE expenses SET amount = ?, description = ?, category = ?, notes = ?, is_recurring = ?, type = ?, account_id = ? WHERE id = ? AND user_id = ?',
+    args: [amount, description, category, notes, isRecurring, type, targetAccountId, id, userId]
   });
   revalidatePath('/');
+  revalidatePath('/transaksi');
+  revalidatePath('/akun');
+  return { success: true };
 }
 
 export async function seedRecurringExpenses(targetMonth) {
@@ -649,3 +760,687 @@ export async function deleteCategory(id) {
   });
   revalidatePath('/');
 }
+
+// ══════════════════════════════════════════
+// ACCOUNTS & WALLETS (STEP 9)
+// ══════════════════════════════════════════
+
+function formatAccountType(type) {
+  switch (type) {
+    case 'BANK': return 'Bank';
+    case 'E_WALLET': return 'E-wallet';
+    case 'CASH': return 'Tunai';
+    case 'OTHER': default: return 'Lainnya';
+  }
+}
+
+function getAsOfDateCutoff(asOfMonth) {
+  if (!asOfMonth) {
+    return new Date().toISOString();
+  }
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  if (asOfMonth < currentMonthStr) {
+    // Past month -> end of selected month (e.g. 2026-07-31T23:59:59.999Z)
+    const [year, month] = asOfMonth.split('-').map(Number);
+    const lastDay = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    return lastDay.toISOString();
+  }
+  
+  // Current month or future month -> current timestamp (no future forecasting)
+  return now.toISOString();
+}
+
+export async function getAccounts(asOfMonth = null) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return [];
+
+  const cutoff = getAsOfDateCutoff(asOfMonth);
+
+  // Single source-of-truth derived balance query using isolated scalar subqueries (prevents join multiplication)
+  const res = await db.execute({
+    sql: `SELECT 
+            a.id,
+            a.user_id,
+            a.name,
+            a.type,
+            a.opening_balance,
+            a.opening_date,
+            a.archived_at,
+            a.created_at,
+            a.updated_at,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id 
+                AND account_id = a.id 
+                AND type = 'income' 
+                AND date >= a.opening_date 
+                AND date <= ?
+            ), 0) AS total_income,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id 
+                AND account_id = a.id 
+                AND type = 'expense' 
+                AND date >= a.opening_date 
+                AND date <= ?
+            ), 0) AS total_expense,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id 
+                AND to_account_id = a.id 
+                AND transfer_date >= a.opening_date 
+                AND transfer_date <= ?
+            ), 0) AS total_transfer_in,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id 
+                AND from_account_id = a.id 
+                AND transfer_date >= a.opening_date 
+                AND transfer_date <= ?
+            ), 0) AS total_transfer_out,
+            (
+              (SELECT COUNT(*) FROM expenses WHERE user_id = a.user_id AND account_id = a.id) +
+              (SELECT COUNT(*) FROM account_transfers WHERE user_id = a.user_id AND (from_account_id = a.id OR to_account_id = a.id))
+            ) AS activity_count
+          FROM accounts a
+          WHERE a.user_id = ? AND a.archived_at IS NULL
+          ORDER BY a.name ASC`,
+    args: [cutoff, cutoff, cutoff, cutoff, userId]
+  });
+
+  return res.rows.map(r => {
+    const openingBalance = Number(r.opening_balance ?? 0);
+    const totalIncome = Number(r.total_income ?? 0);
+    const totalExpense = Number(r.total_expense ?? 0);
+    const totalTransferIn = Number(r.total_transfer_in ?? 0);
+    const totalTransferOut = Number(r.total_transfer_out ?? 0);
+    const balance = openingBalance + totalIncome - totalExpense + totalTransferIn - totalTransferOut;
+
+    return {
+      id: Number(r.id),
+      user_id: Number(r.user_id),
+      name: String(r.name ?? ''),
+      type: String(r.type ?? 'OTHER'),
+      type_label: formatAccountType(r.type),
+      opening_balance: openingBalance,
+      opening_date: String(r.opening_date ?? ''),
+      archived_at: r.archived_at ? String(r.archived_at) : null,
+      balance,
+      activity_count: Number(r.activity_count ?? 0),
+      created_at: String(r.created_at ?? '')
+    };
+  });
+}
+
+export async function getArchivedAccounts() {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return [];
+
+  const nowIso = new Date().toISOString();
+
+  const res = await db.execute({
+    sql: `SELECT 
+            a.id,
+            a.user_id,
+            a.name,
+            a.type,
+            a.opening_balance,
+            a.opening_date,
+            a.archived_at,
+            a.created_at,
+            a.updated_at,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id 
+                AND account_id = a.id 
+                AND type = 'income' 
+                AND date >= a.opening_date 
+                AND date <= ?
+            ), 0) AS total_income,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id 
+                AND account_id = a.id 
+                AND type = 'expense' 
+                AND date >= a.opening_date 
+                AND date <= ?
+            ), 0) AS total_expense,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id 
+                AND to_account_id = a.id 
+                AND transfer_date >= a.opening_date 
+                AND transfer_date <= ?
+            ), 0) AS total_transfer_in,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id 
+                AND from_account_id = a.id 
+                AND transfer_date >= a.opening_date 
+                AND transfer_date <= ?
+            ), 0) AS total_transfer_out,
+            (
+              (SELECT COUNT(*) FROM expenses WHERE user_id = a.user_id AND account_id = a.id) +
+              (SELECT COUNT(*) FROM account_transfers WHERE user_id = a.user_id AND (from_account_id = a.id OR to_account_id = a.id))
+            ) AS activity_count
+          FROM accounts a
+          WHERE a.user_id = ? AND a.archived_at IS NOT NULL
+          ORDER BY a.name ASC`,
+    args: [nowIso, nowIso, nowIso, nowIso, userId]
+  });
+
+  return res.rows.map(r => {
+    const openingBalance = Number(r.opening_balance ?? 0);
+    const totalIncome = Number(r.total_income ?? 0);
+    const totalExpense = Number(r.total_expense ?? 0);
+    const totalTransferIn = Number(r.total_transfer_in ?? 0);
+    const totalTransferOut = Number(r.total_transfer_out ?? 0);
+    const balance = openingBalance + totalIncome - totalExpense + totalTransferIn - totalTransferOut;
+
+    return {
+      id: Number(r.id),
+      user_id: Number(r.user_id),
+      name: String(r.name ?? ''),
+      type: String(r.type ?? 'OTHER'),
+      type_label: formatAccountType(r.type),
+      opening_balance: openingBalance,
+      opening_date: String(r.opening_date ?? ''),
+      archived_at: r.archived_at ? String(r.archived_at) : null,
+      balance,
+      activity_count: Number(r.activity_count ?? 0),
+      created_at: String(r.created_at ?? '')
+    };
+  });
+}
+
+export async function getAccount(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return null;
+
+  const accountId = Number(id);
+  const nowIso = new Date().toISOString();
+
+  const res = await db.execute({
+    sql: `SELECT 
+            a.id,
+            a.user_id,
+            a.name,
+            a.type,
+            a.opening_balance,
+            a.opening_date,
+            a.archived_at,
+            a.created_at,
+            a.updated_at,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id 
+                AND account_id = a.id 
+                AND type = 'income' 
+                AND date >= a.opening_date 
+                AND date <= ?
+            ), 0) AS total_income,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id 
+                AND account_id = a.id 
+                AND type = 'expense' 
+                AND date >= a.opening_date 
+                AND date <= ?
+            ), 0) AS total_expense,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id 
+                AND to_account_id = a.id 
+                AND transfer_date >= a.opening_date 
+                AND transfer_date <= ?
+            ), 0) AS total_transfer_in,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id 
+                AND from_account_id = a.id 
+                AND transfer_date >= a.opening_date 
+                AND transfer_date <= ?
+            ), 0) AS total_transfer_out,
+            (
+              (SELECT COUNT(*) FROM expenses WHERE user_id = a.user_id AND account_id = a.id) +
+              (SELECT COUNT(*) FROM account_transfers WHERE user_id = a.user_id AND (from_account_id = a.id OR to_account_id = a.id))
+            ) AS activity_count
+          FROM accounts a
+          WHERE a.id = ? AND a.user_id = ?`,
+    args: [nowIso, nowIso, nowIso, nowIso, accountId, userId]
+  });
+
+  const r = res.rows[0];
+  if (!r) return null;
+
+  const openingBalance = Number(r.opening_balance ?? 0);
+  const totalIncome = Number(r.total_income ?? 0);
+  const totalExpense = Number(r.total_expense ?? 0);
+  const totalTransferIn = Number(r.total_transfer_in ?? 0);
+  const totalTransferOut = Number(r.total_transfer_out ?? 0);
+  const balance = openingBalance + totalIncome - totalExpense + totalTransferIn - totalTransferOut;
+
+  return {
+    id: Number(r.id),
+    user_id: Number(r.user_id),
+    name: String(r.name ?? ''),
+    type: String(r.type ?? 'OTHER'),
+    type_label: formatAccountType(r.type),
+    opening_balance: openingBalance,
+    opening_date: String(r.opening_date ?? ''),
+    archived_at: r.archived_at ? String(r.archived_at) : null,
+    balance,
+    activity_count: Number(r.activity_count ?? 0),
+    created_at: String(r.created_at ?? '')
+  };
+}
+
+export async function createAccount(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const name = sanitizeText(formData.get('name'), 100);
+  const rawType = String(formData.get('type') ?? '').trim().toUpperCase();
+  const validTypes = ['BANK', 'E_WALLET', 'CASH', 'OTHER'];
+  const type = validTypes.includes(rawType) ? rawType : 'OTHER';
+  
+  const openingBalance = parseCurrency(formData.get('opening_balance') || '0');
+  const openingDate = String(formData.get('opening_date') || new Date().toISOString().slice(0, 10)).trim();
+
+  if (!name) {
+    return { success: false, error: 'Nama akun wajib diisi.' };
+  }
+  if (!openingDate) {
+    return { success: false, error: 'Tanggal mulai pelacakan wajib diisi.' };
+  }
+
+  await db.execute({
+    sql: `INSERT INTO accounts (user_id, name, type, opening_balance, opening_date)
+          VALUES (?, ?, ?, ?, ?)`,
+    args: [userId, name, type, openingBalance, openingDate]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  revalidatePath('/transaksi');
+  return { success: true };
+}
+
+export async function updateAccount(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const id = Number(formData.get('id'));
+  const name = sanitizeText(formData.get('name'), 100);
+  const rawType = String(formData.get('type') ?? '').trim().toUpperCase();
+  const validTypes = ['BANK', 'E_WALLET', 'CASH', 'OTHER'];
+  const type = validTypes.includes(rawType) ? rawType : 'OTHER';
+
+  if (!id || !name) {
+    return { success: false, error: 'Nama akun wajib diisi.' };
+  }
+
+  // Check activity count to enforce opening balance/date locking rule
+  const checkRes = await db.execute({
+    sql: `SELECT 
+            a.id,
+            a.opening_balance,
+            a.opening_date,
+            (
+              (SELECT COUNT(*) FROM expenses WHERE user_id = a.user_id AND account_id = a.id) +
+              (SELECT COUNT(*) FROM account_transfers WHERE user_id = a.user_id AND (from_account_id = a.id OR to_account_id = a.id))
+            ) AS activity_count
+          FROM accounts a
+          WHERE a.id = ? AND a.user_id = ?`,
+    args: [id, userId]
+  });
+
+  if (checkRes.rows.length === 0) {
+    return { success: false, error: 'Akun tidak ditemukan.' };
+  }
+
+  const currentAcc = checkRes.rows[0];
+  const hasActivity = Number(currentAcc.activity_count) > 0;
+
+  if (hasActivity) {
+    // If account has activity, reject any manipulated attempt to change opening_balance or opening_date
+    const rawOpeningBal = formData.get('opening_balance');
+    const rawOpeningDate = formData.get('opening_date');
+
+    if (rawOpeningBal !== null && rawOpeningBal !== '' && parseCurrency(rawOpeningBal) !== Number(currentAcc.opening_balance)) {
+      return {
+        success: false,
+        error: 'Saldo awal dan tanggal mulai tidak dapat diubah setelah akun memiliki aktivitas.'
+      };
+    }
+
+    if (rawOpeningDate !== null && rawOpeningDate !== '' && String(rawOpeningDate).trim().slice(0, 10) !== String(currentAcc.opening_date).slice(0, 10)) {
+      return {
+        success: false,
+        error: 'Saldo awal dan tanggal mulai tidak dapat diubah setelah akun memiliki aktivitas.'
+      };
+    }
+
+    // Safely update name and type only
+    await db.execute({
+      sql: `UPDATE accounts 
+            SET name = ?, type = ?, updated_at = ? 
+            WHERE id = ? AND user_id = ?`,
+      args: [name, type, new Date().toISOString(), id, userId]
+    });
+  } else {
+    // Allow updating opening balance and date if zero activity
+    const openingBalance = parseCurrency(formData.get('opening_balance') || '0');
+    const openingDate = String(formData.get('opening_date') || currentAcc.opening_date).trim();
+
+    if (!openingDate) {
+      return { success: false, error: 'Tanggal mulai pelacakan wajib diisi.' };
+    }
+
+    await db.execute({
+      sql: `UPDATE accounts 
+            SET name = ?, type = ?, opening_balance = ?, opening_date = ?, updated_at = ? 
+            WHERE id = ? AND user_id = ?`,
+      args: [name, type, openingBalance, openingDate, new Date().toISOString(), id, userId]
+    });
+  }
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  revalidatePath('/transaksi');
+  return { success: true };
+}
+
+export async function archiveAccount(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const accountId = Number(id);
+  const nowIso = new Date().toISOString();
+
+  // Calculate current balance as of today
+  const res = await db.execute({
+    sql: `SELECT 
+            a.id,
+            a.name,
+            a.opening_balance,
+            a.opening_date,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id AND account_id = a.id AND type = 'income' AND date >= a.opening_date AND date <= ?
+            ), 0) AS total_income,
+            COALESCE((
+              SELECT SUM(amount) FROM expenses 
+              WHERE user_id = a.user_id AND account_id = a.id AND type = 'expense' AND date >= a.opening_date AND date <= ?
+            ), 0) AS total_expense,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id AND to_account_id = a.id AND transfer_date >= a.opening_date AND transfer_date <= ?
+            ), 0) AS total_transfer_in,
+            COALESCE((
+              SELECT SUM(amount) FROM account_transfers 
+              WHERE user_id = a.user_id AND from_account_id = a.id AND transfer_date >= a.opening_date AND transfer_date <= ?
+            ), 0) AS total_transfer_out
+          FROM accounts a
+          WHERE a.id = ? AND a.user_id = ?`,
+    args: [nowIso, nowIso, nowIso, nowIso, accountId, userId]
+  });
+
+  if (res.rows.length === 0) {
+    return { success: false, error: 'Akun tidak ditemukan.' };
+  }
+
+  const r = res.rows[0];
+  const balance = Number(r.opening_balance ?? 0) + Number(r.total_income ?? 0) - Number(r.total_expense ?? 0) + Number(r.total_transfer_in ?? 0) - Number(r.total_transfer_out ?? 0);
+
+  if (balance !== 0) {
+    return { success: false, error: 'Kosongkan saldo akun sebelum mengarsipkan.' };
+  }
+
+  await db.execute({
+    sql: 'UPDATE accounts SET archived_at = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+    args: [new Date().toISOString(), new Date().toISOString(), accountId, userId]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  revalidatePath('/transaksi');
+  return { success: true };
+}
+
+export async function unarchiveAccount(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const accountId = Number(id);
+
+  await db.execute({
+    sql: 'UPDATE accounts SET archived_at = NULL, updated_at = ? WHERE id = ? AND user_id = ?',
+    args: [new Date().toISOString(), accountId, userId]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  revalidatePath('/transaksi');
+  return { success: true };
+}
+
+// --- ACCOUNT TRANSFERS ---
+
+export async function getAccountTransfers(month = null) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return [];
+
+  let sql = `
+    SELECT 
+      t.id,
+      t.user_id,
+      t.from_account_id,
+      t.to_account_id,
+      t.amount,
+      t.transfer_date,
+      t.note,
+      t.created_at,
+      from_a.name AS from_account_name,
+      from_a.type AS from_account_type,
+      to_a.name AS to_account_name,
+      to_a.type AS to_account_type
+    FROM account_transfers t
+    JOIN accounts from_a ON t.from_account_id = from_a.id
+    JOIN accounts to_a ON t.to_account_id = to_a.id
+    WHERE t.user_id = ?
+  `;
+  const args = [userId];
+
+  if (month) {
+    sql += ` AND t.transfer_date LIKE ?`;
+    args.push(`${month}%`);
+  }
+
+  sql += ` ORDER BY t.transfer_date DESC, t.id DESC`;
+
+  const res = await db.execute({ sql, args });
+
+  return res.rows.map(r => ({
+    id: Number(r.id),
+    user_id: Number(r.user_id),
+    from_account_id: Number(r.from_account_id),
+    to_account_id: Number(r.to_account_id),
+    amount: Number(r.amount),
+    transfer_date: String(r.transfer_date ?? ''),
+    note: String(r.note ?? ''),
+    from_account_name: String(r.from_account_name ?? 'Akun'),
+    from_account_type: String(r.from_account_type ?? 'OTHER'),
+    from_account_type_label: formatAccountType(r.from_account_type),
+    to_account_name: String(r.to_account_name ?? 'Akun'),
+    to_account_type: String(r.to_account_type ?? 'OTHER'),
+    to_account_type_label: formatAccountType(r.to_account_type),
+    created_at: String(r.created_at ?? '')
+  }));
+}
+
+export async function createAccountTransfer(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const fromAccountId = Number(formData.get('from_account_id'));
+  const toAccountId = Number(formData.get('to_account_id'));
+  const amount = parseCurrency(formData.get('amount'));
+  const transferDate = String(formData.get('transfer_date') || new Date().toISOString().slice(0, 10)).trim();
+  const note = sanitizeText(formData.get('note'), 255);
+
+  if (!fromAccountId || !toAccountId) {
+    return { success: false, error: 'Pilih akun asal dan akun tujuan.' };
+  }
+  if (fromAccountId === toAccountId) {
+    return { success: false, error: 'Akun asal dan akun tujuan harus berbeda.' };
+  }
+  if (amount <= 0 || amount > 999_999_999_999) {
+    return { success: false, error: 'Jumlah transfer harus lebih besar dari Rp0.' };
+  }
+  if (!transferDate) {
+    return { success: false, error: 'Tanggal transfer wajib diisi.' };
+  }
+
+  // Verify ownership and active status for both accounts
+  const accountsRes = await db.execute({
+    sql: `SELECT id, name, opening_date, archived_at FROM accounts WHERE id IN (?, ?) AND user_id = ?`,
+    args: [fromAccountId, toAccountId, userId]
+  });
+
+  if (accountsRes.rows.length !== 2) {
+    return { success: false, error: 'Salah satu akun tidak ditemukan atau tidak valid.' };
+  }
+
+  const fromAcc = accountsRes.rows.find(a => Number(a.id) === fromAccountId);
+  const toAcc = accountsRes.rows.find(a => Number(a.id) === toAccountId);
+
+  if (fromAcc.archived_at || toAcc.archived_at) {
+    return { success: false, error: 'Tidak dapat melakukan transfer dari atau ke akun yang diarsipkan.' };
+  }
+
+  const transferDatePrefix = transferDate.slice(0, 10);
+  if (transferDatePrefix < String(fromAcc.opening_date).slice(0, 10)) {
+    const formattedOpening = formatFullDate(fromAcc.opening_date);
+    return {
+      success: false,
+      error: `Transfer terjadi sebelum tanggal mulai ${fromAcc.name} (${formattedOpening}).`
+    };
+  }
+  if (transferDatePrefix < String(toAcc.opening_date).slice(0, 10)) {
+    const formattedOpening = formatFullDate(toAcc.opening_date);
+    return {
+      success: false,
+      error: `Transfer terjadi sebelum tanggal mulai ${toAcc.name} (${formattedOpening}).`
+    };
+  }
+
+  await db.execute({
+    sql: `INSERT INTO account_transfers (user_id, from_account_id, to_account_id, amount, transfer_date, note)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [userId, fromAccountId, toAccountId, amount, transferDate, note]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  return { success: true };
+}
+
+export async function updateAccountTransfer(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const id = Number(formData.get('id'));
+  const fromAccountId = Number(formData.get('from_account_id'));
+  const toAccountId = Number(formData.get('to_account_id'));
+  const amount = parseCurrency(formData.get('amount'));
+  const transferDate = String(formData.get('transfer_date') || new Date().toISOString().slice(0, 10)).trim();
+  const note = sanitizeText(formData.get('note'), 255);
+
+  if (!id || !fromAccountId || !toAccountId) {
+    return { success: false, error: 'Data transfer tidak lengkap.' };
+  }
+  if (fromAccountId === toAccountId) {
+    return { success: false, error: 'Akun asal dan akun tujuan harus berbeda.' };
+  }
+  if (amount <= 0 || amount > 999_999_999_999) {
+    return { success: false, error: 'Jumlah transfer harus lebih besar dari Rp0.' };
+  }
+
+  const transferRes = await db.execute({
+    sql: 'SELECT id FROM account_transfers WHERE id = ? AND user_id = ?',
+    args: [id, userId]
+  });
+  if (transferRes.rows.length === 0) {
+    return { success: false, error: 'Data transfer tidak ditemukan.' };
+  }
+
+  // Verify ownership and opening dates of accounts
+  const accountsRes = await db.execute({
+    sql: `SELECT id, name, opening_date, archived_at FROM accounts WHERE id IN (?, ?) AND user_id = ?`,
+    args: [fromAccountId, toAccountId, userId]
+  });
+  if (accountsRes.rows.length !== 2) {
+    return { success: false, error: 'Akun tidak ditemukan.' };
+  }
+
+  const fromAcc = accountsRes.rows.find(a => Number(a.id) === fromAccountId);
+  const toAcc = accountsRes.rows.find(a => Number(a.id) === toAccountId);
+
+  const transferDatePrefix = transferDate.slice(0, 10);
+  if (transferDatePrefix < String(fromAcc.opening_date).slice(0, 10)) {
+    const formattedOpening = formatFullDate(fromAcc.opening_date);
+    return {
+      success: false,
+      error: `Transfer terjadi sebelum tanggal mulai ${fromAcc.name} (${formattedOpening}).`
+    };
+  }
+  if (transferDatePrefix < String(toAcc.opening_date).slice(0, 10)) {
+    const formattedOpening = formatFullDate(toAcc.opening_date);
+    return {
+      success: false,
+      error: `Transfer terjadi sebelum tanggal mulai ${toAcc.name} (${formattedOpening}).`
+    };
+  }
+
+  await db.execute({
+    sql: `UPDATE account_transfers 
+          SET from_account_id = ?, to_account_id = ?, amount = ?, transfer_date = ?, note = ?, updated_at = ?
+          WHERE id = ? AND user_id = ?`,
+    args: [fromAccountId, toAccountId, amount, transferDate, note, new Date().toISOString(), id, userId]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  return { success: true };
+}
+
+export async function deleteAccountTransfer(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const transferId = Number(id);
+
+  await db.execute({
+    sql: 'DELETE FROM account_transfers WHERE id = ? AND user_id = ?',
+    args: [transferId, userId]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  return { success: true };
+}
+

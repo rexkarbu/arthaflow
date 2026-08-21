@@ -1,4 +1,4 @@
-import { getExpenses, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals } from './actions';
+import { getExpenses, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals, getAccounts } from './actions';
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
@@ -7,6 +7,7 @@ import TrendChart from '@/components/TrendChart';
 import LoginForm from '@/components/LoginForm';
 import TransactionDialog from '@/components/TransactionDialog';
 import FinancialGoals from '@/components/FinancialGoals';
+import AccountOverview from '@/components/AccountOverview';
 import { formatDateTime, formatCompactDate, formatMonthLabel } from '@/lib/format';
 import { formatRupiah } from '@/lib/currency';
 import './globals.css';
@@ -36,6 +37,7 @@ export default async function Home(props) {
   const expenseCategories = await getCategories('expense');
   const incomeCategories = await getCategories('income');
   const goals = await getGoals();
+  const accounts = await getAccounts(selectedMonth);
   
   let allTimeIncome = 0;
   let allTimeExpense = 0;
@@ -439,6 +441,9 @@ export default async function Home(props) {
       {/* Financial Goals */}
       <FinancialGoals goals={goals} mode="preview" currentMonth={selectedMonth} />
 
+      {/* Overview Account Preview */}
+      <AccountOverview accounts={accounts} currentMonth={selectedMonth} />
+
       {/* Transactions Overview Preview (Max 10 rows, simplified dates, context-aware footer link) */}
       <div className="transactions-container">
         <div className="txn-header">
@@ -446,12 +451,14 @@ export default async function Home(props) {
           <TransactionDialog
             expenseCategories={expenseCategories}
             incomeCategories={incomeCategories}
+            accounts={accounts}
           />
         </div>
         <ExpenseList 
           expenses={expenses} 
           expenseCategories={expenseCategories} 
           incomeCategories={incomeCategories} 
+          accounts={accounts}
           mode="preview"
         />
         {expenses.length > 0 && (

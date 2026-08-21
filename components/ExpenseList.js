@@ -6,6 +6,7 @@ import { deleteExpense, updateExpense } from '@/app/actions';
 import CurrencyInput from './CurrencyInput';
 import ConfirmDialog from './ConfirmDialog';
 import { formatRupiah } from '@/lib/currency';
+import { formatCompactDate } from '@/lib/format';
 
 function escapeCsvCell(val) {
   if (val === null || val === undefined) return '""';
@@ -20,17 +21,20 @@ export default function ExpenseList({
   expenses = [],
   expenseCategories = [],
   incomeCategories = [],
+  accounts = [],
   mode = 'full' // 'full' or 'preview'
 }) {
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'income' | 'expense'
   const [activeCat, setActiveCat] = useState('all');
   const [recurringFilter, setRecurringFilter] = useState('all'); // 'all' | 'recurring' | 'non-recurring'
+  const [accountFilter, setAccountFilter] = useState('all'); // 'all' | 'unassigned' | account_id
   const [sortBy, setSortBy] = useState('date_desc'); // 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeRowIndex, setActiveRowIndex] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [editError, setEditError] = useState('');
   const [deletingExpense, setDeletingExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -44,19 +48,46 @@ export default function ExpenseList({
     return Array.from(cats).sort();
   }, [expenses]);
 
+  // Extract all available accounts (from active accounts + historical accounts referenced in expenses)
+  const usedAccounts = useMemo(() => {
+    const accMap = new Map();
+    accounts.forEach(a => {
+      accMap.set(String(a.id), {
+        id: a.id,
+        name: a.name,
+        type: a.type_label || a.type,
+        opening_date: a.opening_date ? String(a.opening_date) : null,
+        archived: !!a.archived_at
+      });
+    });
+    expenses.forEach(e => {
+      if (e.account_id && !accMap.has(String(e.account_id))) {
+        accMap.set(String(e.account_id), {
+          id: e.account_id,
+          name: e.account_name || `Akun #${e.account_id}`,
+          type: e.account_type || '',
+          opening_date: null,
+          archived: !!e.account_archived
+        });
+      }
+    });
+    return Array.from(accMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [accounts, expenses]);
+
   // 1. Filter and sort dataset
   const filteredAndSorted = useMemo(() => {
     if (isPreview) return expenses;
 
-    // Filter pipeline: Search -> Type -> Category -> Recurring
+    // Filter pipeline: Search -> Type -> Category -> Recurring -> Account
     const result = expenses.filter(e => {
-      // Search across description, category, and notes (case-insensitive)
+      // Search across description, category, notes, and account name (case-insensitive)
       if (query.trim()) {
         const q = query.toLowerCase();
         const descMatch = (e.description || '').toLowerCase().includes(q);
         const catMatch = (e.category || '').toLowerCase().includes(q);
         const notesMatch = (e.notes || '').toLowerCase().includes(q);
-        if (!descMatch && !catMatch && !notesMatch) return false;
+        const accMatch = (e.account_name || '').toLowerCase().includes(q);
+        if (!descMatch && !catMatch && !notesMatch && !accMatch) return false;
       }
 
       // Type filter
@@ -69,6 +100,10 @@ export default function ExpenseList({
       // Recurring filter
       if (recurringFilter === 'recurring' && e.is_recurring !== 1) return false;
       if (recurringFilter === 'non-recurring' && e.is_recurring === 1) return false;
+
+      // Account filter
+      if (accountFilter === 'unassigned' && e.account_id != null) return false;
+      if (accountFilter !== 'all' && accountFilter !== 'unassigned' && String(e.account_id) !== String(accountFilter)) return false;
 
       return true;
     });
@@ -93,7 +128,7 @@ export default function ExpenseList({
       }
       return 0;
     });
-  }, [expenses, isPreview, query, typeFilter, activeCat, recurringFilter, sortBy]);
+  }, [expenses, isPreview, query, typeFilter, activeCat, recurringFilter, accountFilter, sortBy]);
 
   // 2. Metrics calculation across entire filtered dataset
   const filteredMetrics = useMemo(() => {
@@ -148,6 +183,12 @@ export default function ExpenseList({
     setActiveRowIndex(null);
   };
 
+  const handleAccountChange = (val) => {
+    setAccountFilter(val);
+    setCurrentPage(1);
+    setActiveRowIndex(null);
+  };
+
   const handleSortChange = (val) => {
     setSortBy(val);
     setCurrentPage(1);
@@ -165,12 +206,13 @@ export default function ExpenseList({
     setTypeFilter('all');
     setActiveCat('all');
     setRecurringFilter('all');
+    setAccountFilter('all');
     setSortBy('date_desc');
     setCurrentPage(1);
     setActiveRowIndex(null);
   };
 
-  const isFiltered = query !== '' || typeFilter !== 'all' || activeCat !== 'all' || recurringFilter !== 'all' || sortBy !== 'date_desc';
+  const isFiltered = query !== '' || typeFilter !== 'all' || activeCat !== 'all' || recurringFilter !== 'all' || accountFilter !== 'all' || sortBy !== 'date_desc';
 
   // Desktop keyboard shortcuts: '/', 'ArrowDown', 'ArrowUp', 'Escape', 'Enter'
   useEffect(() => {
@@ -227,7 +269,7 @@ export default function ExpenseList({
         return;
       }
 
-      // Enter to edit active row
+      // Enter to trigger edit on currently keyboard-active row
       if (e.key === 'Enter' && activeRowIndex !== null && paginatedRows[activeRowIndex]) {
         e.preventDefault();
         setEditId(paginatedRows[activeRowIndex].id);
@@ -238,15 +280,27 @@ export default function ExpenseList({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPreview, paginatedRows, activeRowIndex]);
 
-  function handleEditSubmit(fd) {
+  // Handle inline edit form submission
+  async function handleEditSubmit(formData) {
+    setEditError('');
     startTransition(async () => {
-      await updateExpense(fd);
-      setEditId(null);
+      try {
+        const res = await updateExpense(formData);
+        if (res && res.success === false) {
+          setEditError(res.error || 'Gagal memperbarui transaksi.');
+          return;
+        }
+        setEditId(null);
+        setEditError('');
+      } catch (err) {
+        setEditError(err?.message || 'Gagal memperbarui transaksi.');
+      }
     });
   }
 
+  // Handle single expense deletion via ConfirmDialog
   async function handleConfirmDelete() {
-    if (!deletingExpense || isDeleting) return;
+    if (!deletingExpense) return;
     setIsDeleting(true);
     try {
       await deleteExpense(deletingExpense.id);
@@ -260,12 +314,13 @@ export default function ExpenseList({
 
   // Exports the ENTIRE filtered & sorted dataset across the month
   function exportToCSV() {
-    const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Keterangan', 'Catatan', 'Jumlah (Rp)'];
+    const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Akun', 'Keterangan', 'Catatan', 'Jumlah (Rp)'];
     const rows = filteredAndSorted.map(e => [
       e.id,
       escapeCsvCell(e.dateStr),
       escapeCsvCell(e.type === 'income' ? 'Pemasukan' : 'Pengeluaran'),
       escapeCsvCell(e.category || 'Lainnya'),
+      escapeCsvCell(e.account_name || 'Belum dialokasikan'),
       escapeCsvCell(e.description),
       escapeCsvCell(e.notes || ''),
       Number(e.amount)
@@ -370,6 +425,22 @@ export default function ExpenseList({
                 ))}
               </select>
 
+              {/* Account Filter */}
+              <select
+                className="cat-select"
+                value={accountFilter}
+                onChange={(e) => handleAccountChange(e.target.value)}
+                aria-label="Filter akun"
+              >
+                <option value="all">Semua akun</option>
+                <option value="unassigned">Belum dialokasikan</option>
+                {usedAccounts.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} {a.archived ? '(Diarsipkan)' : ''}
+                  </option>
+                ))}
+              </select>
+
               {/* Recurring Status Filter */}
               <select
                 className="cat-select"
@@ -418,7 +489,7 @@ export default function ExpenseList({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="txn-reset-btn"
+                className="txn-filter-reset"
               >
                 Reset filter
               </button>
@@ -427,9 +498,9 @@ export default function ExpenseList({
         </>
       )}
 
-      {/* ─── TRANSACTION REGISTER ROWS ─── */}
-      {paginatedRows.length === 0 ? (
-        <div className="empty">
+      {/* ─── TRANSACTION LIST SECTION ─── */}
+      {filteredAndSorted.length === 0 ? (
+        <div className="expense-empty">
           {expenses.length === 0 ? (
             'Belum ada transaksi bulan ini.'
           ) : (
@@ -453,6 +524,8 @@ export default function ExpenseList({
             const isKeyboardActive = !isPreview && activeRowIndex === idx;
 
             if (isEditing) {
+              const txDatePrefix = String(exp.date || '').slice(0, 10);
+
               return (
                 <div key={exp.id} className="edit-form">
                   <form action={handleEditSubmit}>
@@ -490,6 +563,35 @@ export default function ExpenseList({
                           {incomeCategories.filter(c => c.name !== exp.category).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </optgroup>
                       </select>
+                      <select
+                        name="account_id"
+                        className="input edit-input-sm"
+                        defaultValue={exp.account_id ? String(exp.account_id) : '__UNASSIGNED__'}
+                        aria-label="Akun"
+                        onChange={() => setEditError('')}
+                      >
+                        <option value="__UNASSIGNED__">Belum dialokasikan</option>
+                        {usedAccounts.map(a => {
+                          const isCurrentAccount = Number(exp.account_id) === Number(a.id);
+                          const openingDatePrefix = a.opening_date ? a.opening_date.slice(0, 10) : null;
+                          const isBeforeOpening = openingDatePrefix && txDatePrefix ? (txDatePrefix < openingDatePrefix) : false;
+                          const isArchivedDisabled = a.archived && !isCurrentAccount;
+                          const isDisabled = (!isCurrentAccount && isBeforeOpening) || isArchivedDisabled;
+
+                          let label = a.name;
+                          if (a.archived) {
+                            label += ' (Diarsipkan)';
+                          } else if (isBeforeOpening) {
+                            label += ` (Mulai ${formatCompactDate(a.opening_date)})`;
+                          }
+
+                          return (
+                            <option key={a.id} value={a.id} disabled={isDisabled}>
+                              {label}
+                            </option>
+                          );
+                        })}
+                      </select>
                     </div>
                     <div className="edit-form-row">
                       <input
@@ -525,10 +627,25 @@ export default function ExpenseList({
                       <button type="submit" className="budget-save-btn btn-save-sm" disabled={isPending}>
                         <Check size={12} /> Simpan
                       </button>
-                      <button type="button" className="btn-cancel btn-cancel-sm" onClick={() => setEditId(null)}>
+                      <button
+                        type="button"
+                        className="btn-cancel btn-cancel-sm"
+                        onClick={() => {
+                          setEditId(null);
+                          setEditError('');
+                        }}
+                      >
                         Batal
                       </button>
                     </div>
+                    {editError && (
+                      <div className="edit-form-error-banner" style={{ marginTop: '0.4rem', fontSize: '0.74rem', color: 'var(--expense)', background: 'var(--surface-sunken)', border: '1px solid var(--border-subtle)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)' }}>
+                        <div style={{ fontWeight: 500 }}>{editError}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                          Ubah tanggal mulai pelacakan akun atau pilih akun lain.
+                        </div>
+                      </div>
+                    )}
                   </form>
                 </div>
               );
@@ -549,6 +666,12 @@ export default function ExpenseList({
                   )}
                   <div className="expense-meta">
                     <span>{exp.category || 'Lainnya'}</span>
+                    {exp.account_name && (
+                      <>
+                        <span className="expense-meta-sep">&middot;</span>
+                        <span className="expense-meta-account">{exp.account_name}</span>
+                      </>
+                    )}
                     <span className="expense-meta-sep">&middot;</span>
                     <span>{isPreview ? (exp.shortDateStr || exp.dateStr) : exp.dateStr}</span>
                     {exp.is_recurring === 1 && (

@@ -20,7 +20,7 @@ export async function GET() {
 
     // 2. Transactions (expenses table)
     const transactionsRes = await db.execute({
-      sql: `SELECT id, amount, description, date, category, notes, is_recurring, type 
+      sql: `SELECT id, amount, description, date, category, notes, is_recurring, type, account_id 
             FROM expenses 
             WHERE user_id = ? 
             ORDER BY date ASC, id ASC`,
@@ -54,15 +54,51 @@ export async function GET() {
       args: [userId]
     });
 
+    // 7. Accounts (Step 9)
+    const accountsRes = await db.execute({
+      sql: `SELECT id, name, type, opening_balance, opening_date, archived_at, created_at
+            FROM accounts
+            WHERE user_id = ?
+            ORDER BY id ASC`,
+      args: [userId]
+    });
+
+    // 8. Account Transfers (Step 9)
+    const transfersRes = await db.execute({
+      sql: `SELECT id, from_account_id, to_account_id, amount, transfer_date, note, created_at
+            FROM account_transfers
+            WHERE user_id = ?
+            ORDER BY transfer_date ASC, id ASC`,
+      args: [userId]
+    });
+
     const backupPayload = {
       format: 'arthaflow-backup',
-      version: 1,
+      version: 2,
       exported_at: new Date().toISOString(),
       data: {
         categories: categoriesRes.rows.map(r => ({
           id: Number(r.id),
           name: String(r.name ?? ''),
           type: String(r.type ?? '')
+        })),
+        accounts: accountsRes.rows.map(r => ({
+          id: Number(r.id),
+          name: String(r.name ?? ''),
+          type: String(r.type ?? 'OTHER'),
+          opening_balance: Number(r.opening_balance ?? 0),
+          opening_date: String(r.opening_date ?? ''),
+          archived_at: r.archived_at ? String(r.archived_at) : null,
+          created_at: String(r.created_at ?? '')
+        })),
+        account_transfers: transfersRes.rows.map(r => ({
+          id: Number(r.id),
+          from_account_id: Number(r.from_account_id),
+          to_account_id: Number(r.to_account_id),
+          amount: Number(r.amount),
+          transfer_date: String(r.transfer_date ?? ''),
+          note: String(r.note ?? ''),
+          created_at: String(r.created_at ?? '')
         })),
         transactions: transactionsRes.rows.map(r => ({
           id: Number(r.id),
@@ -72,7 +108,8 @@ export async function GET() {
           category: String(r.category ?? 'Lainnya'),
           notes: String(r.notes ?? ''),
           is_recurring: Number(r.is_recurring ?? 0),
-          type: String(r.type ?? 'expense')
+          type: String(r.type ?? 'expense'),
+          account_id: r.account_id != null ? Number(r.account_id) : null
         })),
         budgets: budgetsRes.rows.map(r => ({
           id: Number(r.id),
