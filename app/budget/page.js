@@ -1,4 +1,4 @@
-﻿import { getExpenses, getBudget, getCategoryBudgets, getCategories, getAuthSession, seedRecurringExpenses } from "@/app/actions";
+import { getExpenses, getBudget, getCategoryBudgets, getCategories, getAuthSession, seedRecurringExpenses } from "@/app/actions";
 import AppShell from "@/components/AppShell";
 import BudgetBar from "@/components/BudgetBar";
 import CategoryBudgetManager from "@/components/CategoryBudgetManager";
@@ -77,7 +77,7 @@ export default async function BudgetPage(props) {
     <AppShell currentMonth={selectedMonth}>
       <div className="budget-page-header">
         <div>
-          <h1 className="section-title" style={{ fontSize: "1.15rem", marginBottom: "0.2rem" }}>
+          <h1 className="page-heading">
             Budget
           </h1>
           <p className="budget-page-subtitle">Pantau penggunaan budget bulan {monthLabel}.</p>

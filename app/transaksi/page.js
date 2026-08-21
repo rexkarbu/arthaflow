@@ -46,7 +46,7 @@ export default async function TransactionsPage(props) {
       {/* Page Header */}
       <div className="txn-page-header">
         <div>
-          <h1 className="section-title" style={{ fontSize: '1.15rem', marginBottom: '0.2rem' }}>Transaksi</h1>
+          <h1 className="page-heading">Transaksi</h1>
           <p className="txn-page-subtitle">Kelola pemasukan dan pengeluaran bulan {monthLabel}.</p>
         </div>
         <TransactionDialog

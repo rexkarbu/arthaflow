@@ -452,57 +452,67 @@ body {
   margin-bottom: 1.25rem;
 }
 
+/* Mercury: Label recedes; number dominates */
 .fin-balance-label {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
   font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
+/* Mercury: Balance is the clear visual anchor of Overview */
 .fin-balance {
-  font-size: clamp(2rem, 5vw, 2.5rem);
+  font-size: clamp(2.25rem, 6vw, 2.85rem);
   font-weight: 600;
   color: var(--text);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
-  line-height: 1.15;
-  margin-bottom: 0.85rem;
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+  margin-bottom: 1rem;
 }
 
 .fin-balance .currency {
   color: var(--text-muted);
-  font-size: 60%;
+  font-size: 55%;
   font-weight: 400;
-  margin-right: 3px;
+  margin-right: 4px;
+  letter-spacing: 0;
 }
 
+/* Linear: Tighter gap — income/expense read as a paired set */
 .fin-detail-row {
   display: flex;
-  gap: 2rem;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
 .fin-detail-item {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
 }
 
+/* Mercury: Label clearly recedes from value */
 .fin-detail-item .label {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 400;
   display: block;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .fin-income-val {
   color: var(--income);
-  font-weight: 500;
+  font-weight: 600;
 }
 
+/* Neutral: normal expense display — spending is NOT an error state */
 .fin-expense-val {
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ══════════════════════════════════════════
@@ -1390,39 +1400,52 @@ body {
    ══════════════════════════════════════════ */
 
 
+/* Copilot: insight anchored by a quiet left rule — presence without notification feel */
 .monthly-insight {
   border-left: 1px solid var(--border-strong);
-  padding-left: 0.85rem;
-  margin-bottom: 2rem;
-  animation: fadeInUp 0.4s var(--ease-out-spring) 0.05s both;
+  padding-left: 1rem;
+  margin-bottom: 2.25rem;
 }
 
+/* Brand-muted label: present, not loud */
 .monthly-insight-label {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   color: var(--text-muted);
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
   font-weight: 500;
 }
 
 .monthly-insight-text {
-  font-size: 0.85rem;
+  font-size: 0.87rem;
   color: var(--text-secondary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* ══════════════════════════════════════════
    SECTION TITLES
    ══════════════════════════════════════════ */
 
+/* Linear: Section label recedes — quiet editorial marker, not admin-panel header */
 .section-title {
-  font-size: 0.92rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Page-level heading (for page h1 titles like Tujuan, Transaksi page headers) */
+.page-heading {
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--text);
-  margin-bottom: 0.85rem;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
 }
 
 /* ══════════════════════════════════════════
@@ -1640,15 +1663,17 @@ body {
   font-size: 0.82rem;
 }
 
+/* Mercury: Category name recedes; amount and pct lead the right side */
 .cat-item-name {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-weight: 400;
+  font-size: 0.8rem;
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a.cat-item-name:hover {
-  color: var(--text);
+  color: var(--text-secondary);
 }
 
 .cat-item-values {
@@ -1657,16 +1682,18 @@ a.cat-item-name:hover {
   align-items: baseline;
 }
 
+/* Mercury: Amount dominates right column */
 .cat-item-amount {
   font-variant-numeric: tabular-nums;
   color: var(--text);
-  font-weight: 500;
-  font-size: 0.82rem;
+  font-weight: 600;
+  font-size: 0.84rem;
+  letter-spacing: -0.1px;
 }
 
 .cat-item-pct {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1838,16 +1865,32 @@ a.cat-item-name:hover {
   transform: scale(1.1);
 }
 
+/* Monarch: goal-amounts split — saved leads (strong), target recedes */
 .goal-amounts {
-  font-size: 0.76rem;
-  color: var(--text-muted);
+  display: flex;
+  align-items: baseline;
+  gap: 0;
   font-variant-numeric: tabular-nums;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Saved amount: strong, prominent — user's progress is the hero */
+.goal-amounts > span:first-child {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Target amount: quiet reference */
+.goal-amounts > span:last-child {
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .goal-amount-sep {
-  margin: 0 0.25rem;
+  margin: 0 0.3rem;
   color: var(--border);
+  font-size: 0.78rem;
 }
 
 .goal-track {
@@ -1930,27 +1973,29 @@ a.cat-item-name:hover {
   line-height: 1.3;
 }
 
+/* Linear: 'Tambah dana' reads as primary action — solid brand; Withdraw is quiet ghost */
 .goal-action-btn--add {
-  background: var(--surface-hover);
-  border: 1px solid var(--border);
-  color: var(--brand);
-  font-weight: 500;
+  background: var(--brand-subtle);
+  border: 1px solid var(--brand-muted);
+  color: var(--brand-strong);
+  font-weight: 600;
 }
 
 .goal-action-btn--add:hover {
-  background: var(--brand-subtle);
+  background: var(--surface-hover);
   border-color: var(--brand);
   color: var(--text);
+  transform: translateY(-0.5px);
 }
 
 .goal-action-btn--withdraw {
   background: transparent;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid transparent;
   color: var(--text-muted);
 }
 
 .goal-action-btn--withdraw:hover {
-  border-color: var(--border);
+  border-color: var(--border-subtle);
   color: var(--text-secondary);
   background: var(--surface-hover);
 }
@@ -2306,14 +2351,15 @@ a.cat-item-name:hover {
   min-width: 0;
 }
 
+/* Lunch Money: Description leads each row — it is the primary scannable identity */
 .expense-desc {
-  font-size: 0.85rem;
+  font-size: 0.87rem;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text);
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .expense-notes {
@@ -2358,14 +2404,16 @@ a.cat-item-name:hover {
   flex-shrink: 0;
 }
 
+/* Mercury: Amount is financial data — it reads with clear weight and tabular precision */
 .expense-amount {
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 600;
   color: var(--text);
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   min-width: 110px;
+  letter-spacing: -0.2px;
 }
 
 .expense-amount--income {

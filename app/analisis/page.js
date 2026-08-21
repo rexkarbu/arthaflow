@@ -1,4 +1,4 @@
-﻿import { getAuthSession, getAnalyticsData } from "@/app/actions";
+import { getAuthSession, getAnalyticsData } from "@/app/actions";
 import AppShell from "@/components/AppShell";
 import LoginForm from "@/components/LoginForm";
 import AnalyticsWorkspace from "@/components/AnalyticsWorkspace";
@@ -36,7 +36,7 @@ export default async function AnalisisPage(props) {
     <AppShell currentMonth={selectedMonth}>
       <div className="analisis-page-header">
         <div>
-          <h1 className="section-title" style={{ fontSize: "1.15rem", marginBottom: "0.2rem" }}>
+          <h1 className="page-heading">
             Analisis
           </h1>
           <p className="analisis-page-subtitle">

@@ -28,7 +28,7 @@ export default async function GoalsPage(props) {
     <AppShell currentMonth={selectedMonth}>
       <div className="goals-page-header">
         <div>
-          <h1 className="section-title" style={{ fontSize: '1.15rem', marginBottom: '0.2rem' }}>Tujuan</h1>
+          <h1 className="page-heading">Tujuan</h1>
           <p className="goals-page-subtitle">Kelola alokasi dana untuk target keuangan yang ingin kamu capai.</p>
         </div>
       </div>
