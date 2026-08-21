@@ -1,0 +1,15 @@
+warning: in the working copy of 'app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/AccountDialog.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/AccountWorkspace.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ExpenseForm.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ExpenseList.js', LF will be replaced by CRLF the next time Git touches it
+ app/actions.js                 |  71 [32m+++++++++++++++++++++++++++[m
+ app/globals.css                | 109 [32m+++++++++++++++++++++++++++++++++++++++++[m
+ components/AccountDialog.js    |  20 [32m+++++++[m[31m-[m
+ components/AccountWorkspace.js |  13 [32m+++++[m
+ components/ExpenseForm.js      |  27 [32m++++++++[m[31m--[m
+ components/ExpenseList.js      |  54 [32m+++++++++++++++++++[m[31m-[m
+ data.db                        | Bin [31m90112[m -> [32m90112[m bytes
+ data.db-shm                    | Bin [31m32768[m -> [32m32768[m bytes
+ data.db-wal                    | Bin [31m774592[m -> [32m453232[m bytes
+ 9 files changed, 285 insertions(+), 9 deletions(-)

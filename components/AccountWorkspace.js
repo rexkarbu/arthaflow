@@ -11,6 +11,7 @@ import AccountDialog from './AccountDialog';
 import TransferDialog from './TransferDialog';
 import ConfirmDialog from './ConfirmDialog';
 import ExpenseForm from './ExpenseForm';
+import ExtendHistoryDialog from './ExtendHistoryDialog';
 
 export default function AccountWorkspace({
   accounts = [],
@@ -23,6 +24,7 @@ export default function AccountWorkspace({
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
+  const [extendHistoryAccount, setExtendHistoryAccount] = useState(null);
   const [archivingAccount, setArchivingAccount] = useState(null);
   const [isArchiving, setIsArchiving] = useState(false);
 
@@ -370,6 +372,17 @@ export default function AccountWorkspace({
           setShowAddModal(false);
           setEditingAccount(null);
         }}
+        onOpenExtendHistory={(acc) => {
+          setEditingAccount(null);
+          setExtendHistoryAccount(acc);
+        }}
+      />
+
+      {/* Extend History Dialog */}
+      <ExtendHistoryDialog
+        isOpen={!!extendHistoryAccount}
+        account={extendHistoryAccount}
+        onClose={() => setExtendHistoryAccount(null)}
       />
 
       {/* Transfer Modal */}

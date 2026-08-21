@@ -4065,6 +4065,115 @@ a.cat-item-name:hover {
   }
 }
 
+/* Extend History Flow Styles (Step 9.2) */
+.btn-extend-history-link {
+  background: transparent;
+  border: none;
+  color: var(--brand);
+  font-size: 0.74rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color var(--transition-fast);
+}
+
+.btn-extend-history-link:hover {
+  color: var(--brand-strong);
+  text-decoration: underline;
+}
+
+.disabled-account-inline-notice {
+  margin-top: 0.35rem;
+  margin-bottom: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.disabled-account-inline-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.disabled-account-inline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.extend-history-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.extend-preview-card {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.extend-preview-card--new {
+  border-color: var(--brand-border);
+  background: var(--surface-hover);
+}
+
+.extend-preview-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.extend-preview-card--new .extend-preview-tag {
+  color: var(--brand);
+}
+
+.extend-preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.74rem;
+  gap: 0.5rem;
+}
+
+.extend-preview-label {
+  color: var(--text-secondary);
+}
+
+.extend-preview-val {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.extend-eligible-notice {
+  font-size: 0.74rem;
+  color: var(--brand);
+  background: var(--surface-sunken);
+  border: 1px dashed var(--brand-border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  margin-top: 0.5rem;
+}
+
 /* Archived Accounts Collapsible */
 .archived-accounts-section {
   margin-bottom: 2.5rem;

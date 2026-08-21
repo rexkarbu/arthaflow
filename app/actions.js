@@ -1158,6 +1158,77 @@ export async function updateAccount(formData) {
   return { success: true };
 }
 
+export async function extendAccountHistory(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const accountId = Number(formData.get('account_id') || formData.get('id'));
+  const newOpeningDate = String(formData.get('opening_date') || '').trim();
+  const newOpeningBalance = parseCurrency(formData.get('opening_balance') || '0');
+
+  if (!accountId || isNaN(accountId)) {
+    return { success: false, error: 'Akun tidak valid.' };
+  }
+
+  if (!newOpeningDate) {
+    return { success: false, error: 'Tanggal mulai baru wajib diisi.' };
+  }
+
+  if (newOpeningBalance < 0 || newOpeningBalance > 999_999_999_999) {
+    return { success: false, error: 'Saldo awal tidak valid.' };
+  }
+
+  // Fetch current account, verify ownership, and calculate activity count
+  const accRes = await db.execute({
+    sql: `SELECT 
+            a.id, 
+            a.name, 
+            a.opening_date, 
+            a.opening_balance, 
+            a.archived_at,
+            (
+              (SELECT COUNT(*) FROM expenses WHERE user_id = a.user_id AND account_id = a.id) +
+              (SELECT COUNT(*) FROM account_transfers WHERE user_id = a.user_id AND (from_account_id = a.id OR to_account_id = a.id))
+            ) AS activity_count
+          FROM accounts a 
+          WHERE a.id = ? AND a.user_id = ?`,
+    args: [accountId, userId]
+  });
+
+  if (accRes.rows.length === 0) {
+    return { success: false, error: 'Akun tidak ditemukan.' };
+  }
+
+  const currentAcc = accRes.rows[0];
+  if (currentAcc.archived_at) {
+    return { success: false, error: 'Tidak dapat memperluas riwayat akun yang diarsipkan.' };
+  }
+
+  const currentOpeningDatePrefix = String(currentAcc.opening_date).slice(0, 10);
+  const newOpeningDatePrefix = newOpeningDate.slice(0, 10);
+
+  // Strict rule: new opening date must be strictly earlier than current opening date
+  if (newOpeningDatePrefix >= currentOpeningDatePrefix) {
+    return {
+      success: false,
+      error: 'Tanggal mulai baru harus lebih awal dari tanggal mulai saat ini.'
+    };
+  }
+
+  await db.execute({
+    sql: `UPDATE accounts 
+          SET opening_date = ?, opening_balance = ?, updated_at = ? 
+          WHERE id = ? AND user_id = ?`,
+    args: [newOpeningDatePrefix, newOpeningBalance, new Date().toISOString(), accountId, userId]
+  });
+
+  revalidatePath('/');
+  revalidatePath('/akun');
+  revalidatePath('/transaksi');
+  return { success: true };
+}
+
 export async function archiveAccount(id) {
   await dbReady;
   const userId = await getAuthSession();

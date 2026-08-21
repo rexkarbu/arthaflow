@@ -10,7 +10,8 @@ import { createAccount, updateAccount } from '@/app/actions';
 export default function AccountDialog({
   isOpen,
   account = null, // null for create, object for edit
-  onClose
+  onClose,
+  onOpenExtendHistory
 }) {
   if (!isOpen) return null;
 
@@ -19,11 +20,12 @@ export default function AccountDialog({
       key={account ? `edit-${account.id}` : 'create'}
       account={account}
       onClose={onClose}
+      onOpenExtendHistory={onOpenExtendHistory}
     />
   );
 }
 
-function AccountDialogContent({ account, onClose }) {
+function AccountDialogContent({ account, onClose, onOpenExtendHistory }) {
   const [loading, setLoading] = useState(false);
   const [amountError, setAmountError] = useState('');
   const dialogRef = useRef(null);
@@ -243,6 +245,20 @@ function AccountDialogContent({ account, onClose }) {
               disabled={isLocked}
               required
             />
+            {isLocked && onOpenExtendHistory && (
+              <div style={{ marginTop: '0.45rem' }}>
+                <button
+                  type="button"
+                  className="btn-extend-history-link"
+                  onClick={() => {
+                    onClose();
+                    onOpenExtendHistory(account);
+                  }}
+                >
+                  Perluas riwayat akun &rarr;
+                </button>
+              </div>
+            )}
             {!isLocked && (
               <div className="form-help-text" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                 Transaksi sebelum tanggal ini tidak akan mempengaruhi saldo akun.

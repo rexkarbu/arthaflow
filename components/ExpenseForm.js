@@ -6,6 +6,7 @@ import { Repeat } from 'lucide-react';
 import { toast } from 'sonner';
 import CurrencyInput from './CurrencyInput';
 import { parseCurrency } from '@/lib/currency';
+import { formatCompactDate } from '@/lib/format';
 
 export default function ExpenseForm({
   expenseCategories = [],
@@ -186,12 +187,28 @@ export default function ExpenseForm({
           onChange={() => setAccountError('')}
         >
           <option value="__UNASSIGNED__">Belum dialokasikan</option>
-          {accounts.map(acc => (
-            <option key={acc.id} value={acc.id}>
-              {acc.name} ({acc.type_label || acc.type})
-            </option>
-          ))}
+          {accounts.map(acc => {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const isBeforeOpening = acc.opening_date && String(acc.opening_date).slice(0, 10) > todayStr;
+            let label = acc.name;
+            if (acc.archived) {
+              label += ' (Diarsipkan)';
+            } else if (isBeforeOpening) {
+              label += ` — mulai ${formatCompactDate(acc.opening_date)}`;
+            }
+
+            return (
+              <option key={acc.id} value={acc.id} disabled={isBeforeOpening || acc.archived}>
+                {label}
+              </option>
+            );
+          })}
         </select>
+        {accounts.some(a => a.opening_date && String(a.opening_date).slice(0, 10) > new Date().toISOString().slice(0, 10)) && (
+          <div className="form-help-text" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            Akun yang mulai dilacak setelah tanggal transaksi tidak dapat dipilih.
+          </div>
+        )}
         {accountError && (
           <div className="form-error" style={{ marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span>{accountError}</span>

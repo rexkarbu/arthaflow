@@ -5,6 +5,7 @@ import { Trash2, Search, X, Edit2, Check, Download, Repeat, ChevronLeft, Chevron
 import { deleteExpense, updateExpense } from '@/app/actions';
 import CurrencyInput from './CurrencyInput';
 import ConfirmDialog from './ConfirmDialog';
+import ExtendHistoryDialog from './ExtendHistoryDialog';
 import { formatRupiah } from '@/lib/currency';
 import { formatCompactDate } from '@/lib/format';
 
@@ -35,6 +36,8 @@ export default function ExpenseList({
   const [activeRowIndex, setActiveRowIndex] = useState(null);
   const [editId, setEditId] = useState(null);
   const [editError, setEditError] = useState('');
+  const [extendHistoryAccount, setExtendHistoryAccount] = useState(null);
+  const [extendHistorySuggestedDate, setExtendHistorySuggestedDate] = useState(null);
   const [deletingExpense, setDeletingExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -582,7 +585,7 @@ export default function ExpenseList({
                           if (a.archived) {
                             label += ' (Diarsipkan)';
                           } else if (isBeforeOpening) {
-                            label += ` (Mulai ${formatCompactDate(a.opening_date)})`;
+                            label += ` — mulai ${formatCompactDate(a.opening_date)}`;
                           }
 
                           return (
@@ -593,6 +596,41 @@ export default function ExpenseList({
                         })}
                       </select>
                     </div>
+
+                    {/* Disabled account explanation & Perluas riwayat trigger */}
+                    {(() => {
+                      const disabledDueToDateAccounts = usedAccounts.filter(a => {
+                        const isCurrentAccount = Number(exp.account_id) === Number(a.id);
+                        const openingDatePrefix = a.opening_date ? a.opening_date.slice(0, 10) : null;
+                        return !isCurrentAccount && !a.archived && openingDatePrefix && txDatePrefix && (txDatePrefix < openingDatePrefix);
+                      });
+
+                      if (disabledDueToDateAccounts.length === 0) return null;
+
+                      return (
+                        <div className="disabled-account-inline-notice">
+                          <span className="disabled-account-inline-text">
+                            Akun yang mulai dilacak setelah tanggal transaksi tidak dapat dipilih.
+                          </span>
+                          <div className="disabled-account-inline-links">
+                            {disabledDueToDateAccounts.map(a => (
+                              <button
+                                key={a.id}
+                                type="button"
+                                className="btn-extend-history-link"
+                                onClick={() => {
+                                  setExtendHistoryAccount(a);
+                                  setExtendHistorySuggestedDate(txDatePrefix);
+                                }}
+                              >
+                                {a.name} (mulai {formatCompactDate(a.opening_date)}) &mdash; Perluas riwayat &rarr;
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div className="edit-form-row">
                       <input
                         type="text"
@@ -639,7 +677,7 @@ export default function ExpenseList({
                       </button>
                     </div>
                     {editError && (
-                      <div className="edit-form-error-banner" style={{ marginTop: '0.4rem', fontSize: '0.74rem', color: 'var(--expense)', background: 'var(--surface-sunken)', border: '1px solid var(--border-subtle)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-sm)' }}>
+                      <div className="edit-form-error-banner" style={{ marginTop: '0.4rem', fontSize: '0.74rem', color: 'var(--expense)', background: 'var(--surface-sunken)', border: '1px solid var(--border-subtle)', padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)' }}>
                         <div style={{ fontWeight: 500 }}>{editError}</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                           Ubah tanggal mulai pelacakan akun atau pilih akun lain.
@@ -766,6 +804,18 @@ export default function ExpenseList({
           </div>
         </div>
       )}
+
+      {/* Extend History Dialog */}
+      <ExtendHistoryDialog
+        isOpen={!!extendHistoryAccount}
+        account={extendHistoryAccount}
+        suggestedDate={extendHistorySuggestedDate}
+        unassignedTransactions={expenses}
+        onClose={() => {
+          setExtendHistoryAccount(null);
+          setExtendHistorySuggestedDate(null);
+        }}
+      />
 
       {/* Destructive Confirm Delete Modal */}
       <ConfirmDialog
