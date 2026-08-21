@@ -4174,6 +4174,402 @@ a.cat-item-name:hover {
   margin-top: 0.5rem;
 }
 
+/* Recurring Workspace Styles (STEP 10: Recurring Transactions & Bills) */
+.recurring-workspace {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.5rem 0 2rem;
+}
+
+.recurring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.recurring-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0 0 0.25rem 0;
+}
+
+.recurring-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 580px;
+  line-height: 1.45;
+}
+
+.recurring-section {
+  margin-bottom: 2.25rem;
+}
+
+.recurring-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.recurring-section-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.recurring-badge-count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+
+.recurring-empty-card {
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recurring-empty-icon {
+  color: var(--brand);
+  opacity: 0.7;
+}
+
+.recurring-empty-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  max-width: 400px;
+}
+
+/* Priority Due Queue List */
+.due-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.due-queue-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.due-queue-row:hover {
+  border-color: var(--border-hover);
+}
+
+.due-queue-row--overdue {
+  border-color: var(--brand-border);
+}
+
+.due-row-primary {
+  flex: 1 1 35%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.due-row-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.due-row-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.due-row-type-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.due-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.due-meta-dot {
+  color: var(--text-muted);
+}
+
+.due-row-status-col {
+  flex: 0 0 auto;
+}
+
+.due-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.due-status-chip--today {
+  color: var(--brand);
+  border-color: var(--brand-border);
+  background: var(--surface-hover);
+}
+
+.due-status-chip--overdue {
+  color: var(--expense);
+  border-color: var(--border-hover);
+}
+
+.due-status-chip--posted {
+  color: var(--income);
+  border-color: var(--border-subtle);
+}
+
+.due-row-amount-col {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.due-row-amount {
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.due-row-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Active Schedules Table / Card */
+.rule-list-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.rule-table-header {
+  display: grid;
+  grid-template-columns: 2.5fr 1.8fr 1.5fr 1.4fr 1.6fr 1fr;
+  padding: 0.6rem 1rem;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.rule-row {
+  display: grid;
+  grid-template-columns: 2.5fr 1.8fr 1.5fr 1.4fr 1.6fr 1fr;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.rule-row:last-child {
+  border-bottom: none;
+}
+
+.rule-row:hover {
+  background: var(--surface-hover);
+}
+
+.rule-row--paused {
+  background: var(--surface-sunken);
+}
+
+.rule-row--archived {
+  opacity: 0.65;
+}
+
+.rule-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rule-cat-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.rule-schedule-text,
+.rule-account-text,
+.rule-next-text {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.rule-amount-text {
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.rule-col--actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.btn-rule-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-rule-action:hover {
+  background: var(--surface-sunken);
+  border-color: var(--border-subtle);
+  color: var(--text);
+}
+
+.btn-rule-action--resume:hover {
+  color: var(--income);
+  border-color: var(--income);
+}
+
+.btn-rule-action--archive:hover {
+  color: var(--expense);
+  border-color: var(--border-hover);
+}
+
+.recurring-collapsible-section {
+  margin-top: 1.5rem;
+}
+
+.collapsible-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: none;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: color var(--transition-fast);
+}
+
+.collapsible-toggle-btn:hover {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .recurring-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+  .due-queue-row {
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+  .due-row-primary {
+    flex: 1 1 100%;
+  }
+  .due-row-status-col {
+    flex: 1 1 auto;
+  }
+  .due-row-amount-col {
+    flex: 0 0 auto;
+  }
+  .due-row-actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--border-subtle);
+  }
+  .rule-table-header {
+    display: none;
+  }
+  .rule-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name amount"
+      "sched next"
+      "acc actions";
+    gap: 0.35rem;
+    padding: 0.85rem;
+  }
+  .rule-col--name {
+    grid-area: name;
+  }
+  .rule-col--amount {
+    grid-area: amount;
+    text-align: right;
+  }
+  .rule-col--schedule {
+    grid-area: sched;
+  }
+  .rule-col--next {
+    grid-area: next;
+    text-align: right;
+  }
+  .rule-col--account {
+    grid-area: acc;
+  }
+  .rule-col--actions {
+    grid-area: actions;
+  }
+}
+
 /* Archived Accounts Collapsible */
 .archived-accounts-section {
   margin-bottom: 2.5rem;

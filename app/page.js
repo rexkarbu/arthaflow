@@ -1,4 +1,4 @@
-import { getExpenses, getBudget, getAuthSession, seedRecurringExpenses, getCategories, getGoals, getAccounts } from './actions';
+import { getExpenses, getBudget, getAuthSession, getCategories, getGoals, getAccounts } from './actions';
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
@@ -30,8 +30,6 @@ export default async function Home(props) {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const selectedMonth = monthParam || currentMonth;
-
-  await seedRecurringExpenses(selectedMonth);
 
   const rawExpenses = await getExpenses();
   const expenseCategories = await getCategories('expense');

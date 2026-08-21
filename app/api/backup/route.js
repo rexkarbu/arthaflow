@@ -72,9 +72,27 @@ export async function GET() {
       args: [userId]
     });
 
+    // 9. Recurring Rules (Step 10)
+    const recurringRulesRes = await db.execute({
+      sql: `SELECT id, name, type, amount, category, account_id, frequency, day_of_month, day_of_week, start_date, end_date, status, paused_at, resumed_date, note, created_at
+            FROM recurring_rules
+            WHERE user_id = ?
+            ORDER BY id ASC`,
+      args: [userId]
+    });
+
+    // 10. Recurring Occurrences (Step 10)
+    const recurringOccurrencesRes = await db.execute({
+      sql: `SELECT id, rule_id, due_date, name, type, amount, category, account_id, note, status, transaction_id, resolved_at, created_at
+            FROM recurring_occurrences
+            WHERE user_id = ?
+            ORDER BY due_date ASC, id ASC`,
+      args: [userId]
+    });
+
     const backupPayload = {
       format: 'arthaflow-backup',
-      version: 2,
+      version: 3,
       exported_at: new Date().toISOString(),
       data: {
         categories: categoriesRes.rows.map(r => ({
@@ -98,6 +116,39 @@ export async function GET() {
           amount: Number(r.amount),
           transfer_date: String(r.transfer_date ?? ''),
           note: String(r.note ?? ''),
+          created_at: String(r.created_at ?? '')
+        })),
+        recurring_rules: recurringRulesRes.rows.map(r => ({
+          id: Number(r.id),
+          name: String(r.name ?? ''),
+          type: String(r.type ?? 'expense'),
+          amount: Number(r.amount),
+          category: String(r.category ?? 'Lainnya'),
+          account_id: r.account_id != null ? Number(r.account_id) : null,
+          frequency: String(r.frequency ?? 'monthly'),
+          day_of_month: r.day_of_month != null ? Number(r.day_of_month) : null,
+          day_of_week: r.day_of_week != null ? Number(r.day_of_week) : null,
+          start_date: String(r.start_date ?? ''),
+          end_date: r.end_date ? String(r.end_date) : null,
+          status: String(r.status ?? 'ACTIVE'),
+          paused_at: r.paused_at ? String(r.paused_at) : null,
+          resumed_date: r.resumed_date ? String(r.resumed_date) : null,
+          note: String(r.note ?? ''),
+          created_at: String(r.created_at ?? '')
+        })),
+        recurring_occurrences: recurringOccurrencesRes.rows.map(r => ({
+          id: Number(r.id),
+          rule_id: Number(r.rule_id),
+          due_date: String(r.due_date ?? ''),
+          name: String(r.name ?? ''),
+          type: String(r.type ?? 'expense'),
+          amount: Number(r.amount),
+          category: String(r.category ?? 'Lainnya'),
+          account_id: r.account_id != null ? Number(r.account_id) : null,
+          note: String(r.note ?? ''),
+          status: String(r.status ?? 'PENDING'),
+          transaction_id: r.transaction_id != null ? Number(r.transaction_id) : null,
+          resolved_at: r.resolved_at ? String(r.resolved_at) : null,
           created_at: String(r.created_at ?? '')
         })),
         transactions: transactionsRes.rows.map(r => ({

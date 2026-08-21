@@ -7,7 +7,14 @@ import { formatCurrencyInput, parseCurrency } from '@/lib/currency';
  * Reusable Currency Input Component for Indonesian Rupiah
  * - Live auto-formats with thousands dot separator ("1.000.000")
  * - Sanitizes copy-paste input (e.g. "Rp 2.500.000" -> "2.500.000")
- * - Supplies both clean numeric value for FormData and formatted display
+ * - Supports both controlled (`value`) and uncontrolled (`defaultValue`) modes
+ * 
+ * CANONICAL CALLBACK CONTRACT:
+ * @param {function(cleanNum: number, formatted: string, event: React.SyntheticEvent): void} onChange
+ *   - `cleanNum`: raw numeric whole-Rupiah amount (e.g. 500000)
+ *   - `formatted`: localized string formatted with dot separators (e.g. "500.000")
+ *   - `event`: native DOM / SyntheticEvent
+ * NOTE: The first callback argument is NOT a DOM event. Do NOT read `e.target.value` from the first argument.
  */
 export default function CurrencyInput({
   id,

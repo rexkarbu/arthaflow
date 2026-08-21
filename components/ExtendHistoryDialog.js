@@ -220,8 +220,8 @@ function ExtendHistoryDialogContent({
                 className="input amount-input"
                 placeholder="0"
                 value={openingBalanceVal}
-                onChange={(e) => {
-                  setOpeningBalanceVal(e.target.value);
+                onChange={(raw, formatted) => {
+                  setOpeningBalanceVal(formatted);
                   setErrorMsg('');
                 }}
               />

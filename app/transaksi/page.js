@@ -1,9 +1,11 @@
-import { getExpenses, getAuthSession, seedRecurringExpenses, getCategories, getAccounts } from '@/app/actions';
+import { getExpenses, getAuthSession, getCategories, getAccounts } from '@/app/actions';
 import AppShell from '@/components/AppShell';
 import ExpenseList from '@/components/ExpenseList';
 import LoginForm from '@/components/LoginForm';
 import TransactionDialog from '@/components/TransactionDialog';
 import { formatDateTime, formatMonthLabel } from '@/lib/format';
+import Link from 'next/link';
+import { Repeat } from 'lucide-react';
 import '@/app/globals.css';
 
 export const metadata = {
@@ -23,8 +25,6 @@ export default async function TransactionsPage(props) {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const selectedMonth = monthParam || currentMonth;
-
-  await seedRecurringExpenses(selectedMonth);
 
   const rawExpenses = await getExpenses();
   const expenseCategories = await getCategories('expense');
@@ -50,11 +50,20 @@ export default async function TransactionsPage(props) {
           <h1 className="page-heading">Transaksi</h1>
           <p className="txn-page-subtitle">Kelola pemasukan dan pengeluaran bulan {monthLabel}.</p>
         </div>
-        <TransactionDialog
-          expenseCategories={expenseCategories}
-          incomeCategories={incomeCategories}
-          accounts={accounts}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <Link
+            href={`/rutin?month=${selectedMonth}`}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.8rem', padding: '0.45rem 0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <Repeat size={14} /> Kelola rutin
+          </Link>
+          <TransactionDialog
+            expenseCategories={expenseCategories}
+            incomeCategories={incomeCategories}
+            accounts={accounts}
+          />
+        </div>
       </div>
 
       {/* Full Transaction Management List */}

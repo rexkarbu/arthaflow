@@ -13,6 +13,11 @@ import {
   sanitizeGoalName,
   sanitizeUsername
 } from '@/lib/formSanitizer';
+import {
+  computeDueCandidateDates,
+  computeNextDueDate,
+  getTodayDateStr
+} from '@/lib/recurrence';
 
 // --- AUTH & SESSIONS ---
 
@@ -304,20 +309,6 @@ export async function addExpense(formData) {
   return { success: true };
 }
 
-export async function deleteExpense(id) {
-  const userId = await getAuthSession();
-  if (!userId) throw new Error('Unauthorized');
-
-  await db.execute({
-    sql: 'DELETE FROM expenses WHERE id = ? AND user_id = ?',
-    args: [id, userId]
-  });
-  revalidatePath('/');
-  revalidatePath('/transaksi');
-  revalidatePath('/akun');
-  return { success: true };
-}
-
 export async function updateExpense(formData) {
   const userId = await getAuthSession();
   if (!userId) throw new Error('Unauthorized');
@@ -388,55 +379,61 @@ export async function updateExpense(formData) {
   return { success: true };
 }
 
-export async function seedRecurringExpenses(targetMonth) {
+export async function deleteExpense(id) {
+  await dbReady;
   const userId = await getAuthSession();
-  if (!userId) return;
+  if (!userId) throw new Error('Unauthorized');
 
-  const [year, month] = targetMonth.split('-').map(Number);
-  const prevDate = new Date(year, month - 2, 1);
-  const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-
-  const resRecurring = await db.execute({
-    sql: `SELECT * FROM expenses WHERE user_id = ? AND is_recurring = 1 AND date LIKE ?`,
-    args: [userId, `${prevMonth}%`]
-  });
-  const recurring = resRecurring.rows;
-
-  if (recurring.length === 0) return;
-
-  const resExisting = await db.execute({
-    sql: `SELECT description, amount, category, notes, type FROM expenses WHERE user_id = ? AND is_recurring = 1 AND date LIKE ?`,
-    args: [userId, `${targetMonth}%`]
-  });
-  const existingThisMonth = new Set(resExisting.rows.map(r => {
-    const type = (r.type || 'expense').toLowerCase();
-    const category = (r.category || 'Lainnya').toLowerCase();
-    const description = String(r.description).toLowerCase();
-    const amount = Number(r.amount);
-    const notes = String(r.notes || '').toLowerCase();
-    return `${type}::${category}::${description}::${amount}::${notes}`;
-  }));
-
-  const targetDate = new Date(year, month - 1, 1).toISOString();
+  const expId = Number(id);
+  if (!expId || isNaN(expId)) {
+    return { success: false, error: 'Transaksi tidak valid.' };
+  }
 
   const tx = await db.transaction('write');
   try {
-    for (const exp of recurring) {
-      const signature = `${String(exp.type || 'expense').toLowerCase()}::${String(exp.category || 'Lainnya').toLowerCase()}::${String(exp.description).toLowerCase()}::${Number(exp.amount)}::${String(exp.notes || '').toLowerCase()}`;
-      if (!existingThisMonth.has(signature)) {
-        await tx.execute({
-          sql: `INSERT INTO expenses (user_id, amount, description, date, category, notes, is_recurring, type) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
-          args: [userId, exp.amount, exp.description, targetDate, exp.category, exp.notes || '', exp.type || 'expense']
-        });
-        existingThisMonth.add(signature);
-      }
+    const expRes = await tx.execute({
+      sql: 'SELECT id FROM expenses WHERE id = ? AND user_id = ?',
+      args: [expId, userId]
+    });
+    if (expRes.rows.length === 0) {
+      await tx.rollback();
+      return { success: false, error: 'Transaksi tidak ditemukan.' };
     }
+
+    // If this transaction is linked to a recurring occurrence, reopen the occurrence as PENDING
+    await tx.execute({
+      sql: `UPDATE recurring_occurrences 
+            SET status = 'PENDING', transaction_id = NULL, resolved_at = NULL, updated_at = ? 
+            WHERE transaction_id = ? AND user_id = ?`,
+      args: [new Date().toISOString(), expId, userId]
+    });
+
+    // Delete expense
+    await tx.execute({
+      sql: 'DELETE FROM expenses WHERE id = ? AND user_id = ?',
+      args: [expId, userId]
+    });
+
     await tx.commit();
-  } catch (error) {
+  } catch (err) {
     await tx.rollback();
+    throw err;
   }
 
   revalidatePath('/');
+  revalidatePath('/transaksi');
+  revalidatePath('/akun');
+  revalidatePath('/rutin');
+  revalidatePath('/analisis');
+  revalidatePath('/budget');
+  return { success: true };
+}
+
+export async function seedRecurringExpenses(targetMonth) {
+  // DEPRECATED in STEP 10: Recurring Transactions & Bills Foundation
+  // Financial activity is now governed by the confirmation-first Recurring Occurrences system.
+  // Real transactions are never automatically posted in the background.
+  return;
 }
 
 export async function getBudget(month) {
@@ -1512,6 +1509,656 @@ export async function deleteAccountTransfer(id) {
 
   revalidatePath('/');
   revalidatePath('/akun');
+  return { success: true };
+}
+
+// --- RECURRING TRANSACTIONS & OCCURRENCES ENGINE (STEP 10) ---
+
+export async function materializeDueOccurrences(userId, asOfDateStr = getTodayDateStr()) {
+  await dbReady;
+  if (!userId) return;
+
+  // 1. Fetch active and paused rules for user
+  const rulesRes = await db.execute({
+    sql: `SELECT 
+            id, user_id, name, type, amount, category, account_id, 
+            frequency, day_of_month, day_of_week, start_date, end_date, 
+            status, paused_at, resumed_date, note 
+          FROM recurring_rules 
+          WHERE user_id = ? AND status IN ('ACTIVE', 'PAUSED')`,
+    args: [userId]
+  });
+
+  const rules = rulesRes.rows;
+  if (rules.length === 0) return;
+
+  // 2. For each rule, compute candidate due dates up to asOfDateStr
+  for (const rule of rules) {
+    const candidates = computeDueCandidateDates(rule, asOfDateStr, 100);
+    if (candidates.length >= 100) {
+      console.warn(`[RECURRING ENGINE] Bounded materialization limit (100) reached for rule ${rule.id} (${rule.name}).`);
+    }
+
+    if (candidates.length === 0) continue;
+
+    // Fetch existing occurrences for this rule
+    const existingRes = await db.execute({
+      sql: 'SELECT due_date FROM recurring_occurrences WHERE user_id = ? AND rule_id = ?',
+      args: [userId, rule.id]
+    });
+    const existingDates = new Set(existingRes.rows.map(r => String(r.due_date).slice(0, 10)));
+
+    for (const dueDate of candidates) {
+      if (!existingDates.has(dueDate)) {
+        // Materialize new occurrence with immutable financial snapshot
+        await db.execute({
+          sql: `INSERT OR IGNORE INTO recurring_occurrences 
+                (user_id, rule_id, due_date, name, type, amount, category, account_id, note, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`,
+          args: [
+            userId,
+            rule.id,
+            dueDate,
+            rule.name,
+            rule.type || 'expense',
+            Number(rule.amount),
+            rule.category || 'Lainnya',
+            rule.account_id != null ? Number(rule.account_id) : null,
+            rule.note || ''
+          ]
+        });
+        existingDates.add(dueDate);
+      }
+    }
+  }
+}
+
+export async function getRecurringRules() {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return [];
+
+  const res = await db.execute({
+    sql: `SELECT 
+            r.id,
+            r.user_id,
+            r.name,
+            r.type,
+            r.amount,
+            r.category,
+            r.account_id,
+            r.frequency,
+            r.day_of_month,
+            r.day_of_week,
+            r.start_date,
+            r.end_date,
+            r.status,
+            r.paused_at,
+            r.resumed_date,
+            r.note,
+            r.created_at,
+            r.updated_at,
+            a.name AS account_name,
+            a.type AS account_type,
+            a.archived_at AS account_archived_at
+          FROM recurring_rules r
+          LEFT JOIN accounts a ON a.id = r.account_id AND a.user_id = r.user_id
+          WHERE r.user_id = ?
+          ORDER BY 
+            CASE r.status 
+              WHEN 'ACTIVE' THEN 1 
+              WHEN 'PAUSED' THEN 2 
+              WHEN 'ARCHIVED' THEN 3 
+              ELSE 4 
+            END ASC,
+            r.id DESC`,
+    args: [userId]
+  });
+
+  const todayStr = getTodayDateStr();
+
+  return res.rows.map(r => {
+    const plainRule = {
+      id: Number(r.id),
+      user_id: Number(r.user_id),
+      name: String(r.name ?? ''),
+      type: String(r.type ?? 'expense'),
+      amount: Number(r.amount ?? 0),
+      category: String(r.category ?? 'Lainnya'),
+      account_id: r.account_id != null ? Number(r.account_id) : null,
+      account_name: r.account_name ? String(r.account_name) : null,
+      account_type: r.account_type ? String(r.account_type) : null,
+      account_archived: !!r.account_archived_at,
+      frequency: String(r.frequency ?? 'monthly'),
+      day_of_month: r.day_of_month != null ? Number(r.day_of_month) : null,
+      day_of_week: r.day_of_week != null ? Number(r.day_of_week) : null,
+      start_date: String(r.start_date ?? ''),
+      end_date: r.end_date ? String(r.end_date) : null,
+      status: String(r.status ?? 'ACTIVE'),
+      paused_at: r.paused_at ? String(r.paused_at) : null,
+      resumed_date: r.resumed_date ? String(r.resumed_date) : null,
+      note: String(r.note ?? ''),
+      created_at: String(r.created_at ?? ''),
+      updated_at: String(r.updated_at ?? '')
+    };
+
+    plainRule.next_due_date = r.status === 'ACTIVE'
+      ? computeNextDueDate(plainRule, todayStr)
+      : null;
+
+    return plainRule;
+  });
+}
+
+export async function getRecurringOccurrences() {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) return { pending: [], resolved: [] };
+
+  // Materialize any newly due occurrences up to today
+  await materializeDueOccurrences(userId);
+
+  const res = await db.execute({
+    sql: `SELECT 
+            o.id,
+            o.user_id,
+            o.rule_id,
+            o.due_date,
+            o.name,
+            o.type,
+            o.amount,
+            o.category,
+            o.account_id,
+            o.note,
+            o.status,
+            o.transaction_id,
+            o.resolved_at,
+            o.created_at,
+            o.updated_at,
+            a.name AS account_name,
+            a.type AS account_type,
+            a.archived_at AS account_archived_at,
+            a.opening_date AS account_opening_date,
+            r.name AS current_rule_name,
+            r.status AS current_rule_status
+          FROM recurring_occurrences o
+          LEFT JOIN accounts a ON a.id = o.account_id AND a.user_id = o.user_id
+          LEFT JOIN recurring_rules r ON r.id = o.rule_id AND r.user_id = o.user_id
+          WHERE o.user_id = ?
+          ORDER BY o.due_date ASC, o.id ASC`,
+    args: [userId]
+  });
+
+  const todayStr = getTodayDateStr();
+  const pending = [];
+  const resolved = [];
+
+  for (const r of res.rows) {
+    const dueDateStr = String(r.due_date ?? '').slice(0, 10);
+    const isOverdue = r.status === 'PENDING' && dueDateStr < todayStr;
+    const isDueToday = r.status === 'PENDING' && dueDateStr === todayStr;
+
+    // Calculate days overdue
+    let daysOverdue = 0;
+    if (isOverdue) {
+      const dueTime = new Date(dueDateStr).getTime();
+      const todayTime = new Date(todayStr).getTime();
+      daysOverdue = Math.max(1, Math.round((todayTime - dueTime) / (1000 * 60 * 60 * 24)));
+    }
+
+    const plainOcc = {
+      id: Number(r.id),
+      user_id: Number(r.user_id),
+      rule_id: Number(r.rule_id),
+      due_date: dueDateStr,
+      name: String(r.name ?? ''),
+      type: String(r.type ?? 'expense'),
+      amount: Number(r.amount ?? 0),
+      category: String(r.category ?? 'Lainnya'),
+      account_id: r.account_id != null ? Number(r.account_id) : null,
+      account_name: r.account_name ? String(r.account_name) : null,
+      account_type: r.account_type ? String(r.account_type) : null,
+      account_archived: !!r.account_archived_at,
+      account_opening_date: r.account_opening_date ? String(r.account_opening_date).slice(0, 10) : null,
+      note: String(r.note ?? ''),
+      status: String(r.status ?? 'PENDING'),
+      is_overdue: isOverdue,
+      is_due_today: isDueToday,
+      days_overdue: daysOverdue,
+      transaction_id: r.transaction_id != null ? Number(r.transaction_id) : null,
+      resolved_at: r.resolved_at ? String(r.resolved_at) : null,
+      created_at: String(r.created_at ?? ''),
+      updated_at: String(r.updated_at ?? ''),
+      current_rule_name: r.current_rule_name ? String(r.current_rule_name) : null,
+      current_rule_status: r.current_rule_status ? String(r.current_rule_status) : null
+    };
+
+    if (plainOcc.status === 'PENDING') {
+      pending.push(plainOcc);
+    } else {
+      resolved.push(plainOcc);
+    }
+  }
+
+  // Pending sorted oldest first (due_date ASC)
+  // Resolved sorted newest first (due_date DESC)
+  resolved.sort((a, b) => b.due_date.localeCompare(a.due_date) || b.id - a.id);
+
+  return {
+    pending,
+    resolved: resolved.slice(0, 50)
+  };
+}
+
+export async function createRecurringRule(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const name = sanitizeDescription(formData.get('name') || '');
+  const type = String(formData.get('type') || 'expense').toLowerCase();
+  const amount = parseCurrency(formData.get('amount') || '0');
+  const category = sanitizeCategoryName(formData.get('category') || 'Lainnya');
+  const frequency = String(formData.get('frequency') || 'monthly').toLowerCase();
+  const startDate = String(formData.get('start_date') || '').trim().slice(0, 10);
+  const endDate = String(formData.get('end_date') || '').trim().slice(0, 10) || null;
+  const note = sanitizeText(formData.get('note') || '');
+
+  let dayOfMonth = null;
+  let dayOfWeek = null;
+
+  if (!name) {
+    return { success: false, error: 'Nama jadwal rutin wajib diisi.' };
+  }
+
+  if (type !== 'expense' && type !== 'income') {
+    return { success: false, error: 'Jenis transaksi tidak valid.' };
+  }
+
+  if (amount <= 0) {
+    return { success: false, error: 'Jumlah harus lebih besar dari Rp0.' };
+  }
+
+  if (amount > 999_999_999_999) {
+    return { success: false, error: 'Jumlah melebihi batas maksimum.' };
+  }
+
+  if (!startDate) {
+    return { success: false, error: 'Tanggal mulai wajib diisi.' };
+  }
+
+  if (endDate && endDate < startDate) {
+    return { success: false, error: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.' };
+  }
+
+  if (frequency === 'monthly') {
+    dayOfMonth = parseInt(formData.get('day_of_month'), 10);
+    if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+      return { success: false, error: 'Pilih tanggal antara 1 sampai 31 untuk jadwal bulanan.' };
+    }
+  } else if (frequency === 'weekly') {
+    dayOfWeek = parseInt(formData.get('day_of_week'), 10);
+    if (isNaN(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7) {
+      return { success: false, error: 'Pilih hari dalam seminggu untuk jadwal mingguan.' };
+    }
+  } else {
+    return { success: false, error: 'Frekuensi jadwal tidak valid.' };
+  }
+
+  // Account ownership and active validation
+  let targetAccountId = null;
+  const accountIdRaw = formData.get('account_id');
+  if (accountIdRaw && accountIdRaw !== '__UNASSIGNED__' && accountIdRaw !== '') {
+    const parsedAccId = parseInt(accountIdRaw, 10);
+    if (!isNaN(parsedAccId)) {
+      const accRes = await db.execute({
+        sql: 'SELECT id, name, archived_at FROM accounts WHERE id = ? AND user_id = ?',
+        args: [parsedAccId, userId]
+      });
+      if (accRes.rows.length === 0) {
+        return { success: false, error: 'Akun tidak ditemukan.' };
+      }
+      if (accRes.rows[0].archived_at) {
+        return { success: false, error: 'Tidak dapat menggunakan akun yang diarsipkan untuk jadwal baru.' };
+      }
+      targetAccountId = parsedAccId;
+    }
+  }
+
+  const res = await db.execute({
+    sql: `INSERT INTO recurring_rules 
+          (user_id, name, type, amount, category, account_id, frequency, day_of_month, day_of_week, start_date, end_date, status, note)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?)`,
+    args: [userId, name, type, amount, category, targetAccountId, frequency, dayOfMonth, dayOfWeek, startDate, endDate, note]
+  });
+
+  const ruleId = Number(res.lastInsertRowid);
+
+  // Materialize any immediately due occurrences
+  await materializeDueOccurrences(userId);
+
+  revalidatePath('/rutin');
+  revalidatePath('/transaksi');
+  return { success: true, id: ruleId };
+}
+
+export async function updateRecurringRule(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const ruleId = Number(formData.get('id') || formData.get('rule_id'));
+  if (!ruleId || isNaN(ruleId)) {
+    return { success: false, error: 'Jadwal rutin tidak valid.' };
+  }
+
+  const existingRes = await db.execute({
+    sql: 'SELECT id, user_id, status FROM recurring_rules WHERE id = ? AND user_id = ?',
+    args: [ruleId, userId]
+  });
+  if (existingRes.rows.length === 0) {
+    return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+  }
+
+  const name = sanitizeDescription(formData.get('name') || '');
+  const type = String(formData.get('type') || 'expense').toLowerCase();
+  const amount = parseCurrency(formData.get('amount') || '0');
+  const category = sanitizeCategoryName(formData.get('category') || 'Lainnya');
+  const frequency = String(formData.get('frequency') || 'monthly').toLowerCase();
+  const startDate = String(formData.get('start_date') || '').trim().slice(0, 10);
+  const endDate = String(formData.get('end_date') || '').trim().slice(0, 10) || null;
+  const note = sanitizeText(formData.get('note') || '');
+
+  let dayOfMonth = null;
+  let dayOfWeek = null;
+
+  if (!name) {
+    return { success: false, error: 'Nama jadwal rutin wajib diisi.' };
+  }
+  if (type !== 'expense' && type !== 'income') {
+    return { success: false, error: 'Jenis transaksi tidak valid.' };
+  }
+  if (amount <= 0) {
+    return { success: false, error: 'Jumlah harus lebih besar dari Rp0.' };
+  }
+  if (amount > 999_999_999_999) {
+    return { success: false, error: 'Jumlah melebihi batas maksimum.' };
+  }
+  if (!startDate) {
+    return { success: false, error: 'Tanggal mulai wajib diisi.' };
+  }
+  if (endDate && endDate < startDate) {
+    return { success: false, error: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.' };
+  }
+
+  if (frequency === 'monthly') {
+    dayOfMonth = parseInt(formData.get('day_of_month'), 10);
+    if (isNaN(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+      return { success: false, error: 'Pilih tanggal antara 1 sampai 31 untuk jadwal bulanan.' };
+    }
+  } else if (frequency === 'weekly') {
+    dayOfWeek = parseInt(formData.get('day_of_week'), 10);
+    if (isNaN(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7) {
+      return { success: false, error: 'Pilih hari dalam seminggu untuk jadwal mingguan.' };
+    }
+  } else {
+    return { success: false, error: 'Frekuensi jadwal tidak valid.' };
+  }
+
+  let targetAccountId = null;
+  const accountIdRaw = formData.get('account_id');
+  if (accountIdRaw && accountIdRaw !== '__UNASSIGNED__' && accountIdRaw !== '') {
+    const parsedAccId = parseInt(accountIdRaw, 10);
+    if (!isNaN(parsedAccId)) {
+      const accRes = await db.execute({
+        sql: 'SELECT id, name, archived_at FROM accounts WHERE id = ? AND user_id = ?',
+        args: [parsedAccId, userId]
+      });
+      if (accRes.rows.length === 0) {
+        return { success: false, error: 'Akun tidak ditemukan.' };
+      }
+      targetAccountId = parsedAccId;
+    }
+  }
+
+  // Update rule metadata without touching already-materialized occurrence snapshots!
+  await db.execute({
+    sql: `UPDATE recurring_rules 
+          SET name = ?, type = ?, amount = ?, category = ?, account_id = ?, 
+              frequency = ?, day_of_month = ?, day_of_week = ?, start_date = ?, end_date = ?, 
+              note = ?, updated_at = ?
+          WHERE id = ? AND user_id = ?`,
+    args: [name, type, amount, category, targetAccountId, frequency, dayOfMonth, dayOfWeek, startDate, endDate, note, new Date().toISOString(), ruleId, userId]
+  });
+
+  // Materialize any new dates if schedule expanded
+  await materializeDueOccurrences(userId);
+
+  revalidatePath('/rutin');
+  revalidatePath('/transaksi');
+  return { success: true };
+}
+
+export async function pauseRecurringRule(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const ruleId = Number(id);
+  const todayStr = getTodayDateStr();
+
+  const res = await db.execute({
+    sql: `UPDATE recurring_rules 
+          SET status = 'PAUSED', paused_at = ?, updated_at = ? 
+          WHERE id = ? AND user_id = ? AND status = 'ACTIVE'`,
+    args: [todayStr, new Date().toISOString(), ruleId, userId]
+  });
+
+  if (res.rowsAffected === 0) {
+    return { success: false, error: 'Jadwal rutin tidak ditemukan atau sudah tidak aktif.' };
+  }
+
+  revalidatePath('/rutin');
+  return { success: true };
+}
+
+export async function resumeRecurringRule(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const ruleId = Number(id);
+  const todayStr = getTodayDateStr();
+
+  const res = await db.execute({
+    sql: `UPDATE recurring_rules 
+          SET status = 'ACTIVE', resumed_date = ?, updated_at = ? 
+          WHERE id = ? AND user_id = ? AND status = 'PAUSED'`,
+    args: [todayStr, new Date().toISOString(), ruleId, userId]
+  });
+
+  if (res.rowsAffected === 0) {
+    return { success: false, error: 'Jadwal rutin tidak ditemukan atau tidak sedang dijeda.' };
+  }
+
+  await materializeDueOccurrences(userId);
+
+  revalidatePath('/rutin');
+  return { success: true };
+}
+
+export async function archiveRecurringRule(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const ruleId = Number(id);
+
+  const res = await db.execute({
+    sql: `UPDATE recurring_rules 
+          SET status = 'ARCHIVED', updated_at = ? 
+          WHERE id = ? AND user_id = ?`,
+    args: [new Date().toISOString(), ruleId, userId]
+  });
+
+  if (res.rowsAffected === 0) {
+    return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+  }
+
+  revalidatePath('/rutin');
+  return { success: true };
+}
+
+export async function skipRecurringOccurrence(id) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const occId = Number(id);
+  if (!occId || isNaN(occId)) {
+    return { success: false, error: 'Jadwal tidak valid.' };
+  }
+
+  const res = await db.execute({
+    sql: `UPDATE recurring_occurrences 
+          SET status = 'SKIPPED', resolved_at = ?, updated_at = ? 
+          WHERE id = ? AND user_id = ? AND status = 'PENDING'`,
+    args: [new Date().toISOString(), new Date().toISOString(), occId, userId]
+  });
+
+  if (res.rowsAffected === 0) {
+    return { success: false, error: 'Transaksi rutin tidak ditemukan atau sudah diselesaikan.' };
+  }
+
+  revalidatePath('/rutin');
+  return { success: true };
+}
+
+export async function recordRecurringOccurrence(formData) {
+  await dbReady;
+  const userId = await getAuthSession();
+  if (!userId) throw new Error('Unauthorized');
+
+  const occurrenceId = Number(formData.get('occurrence_id'));
+  if (!occurrenceId || isNaN(occurrenceId)) {
+    return { success: false, error: 'Jadwal tidak valid.' };
+  }
+
+  const description = sanitizeDescription(formData.get('description') || '');
+  const amount = parseCurrency(formData.get('amount') || '0');
+  const category = sanitizeCategoryName(formData.get('category') || 'Lainnya');
+  const type = String(formData.get('type') || 'expense').toLowerCase();
+  const txDateRaw = String(formData.get('date') || '').trim();
+  const notes = sanitizeText(formData.get('notes') || '');
+
+  if (!description) {
+    return { success: false, error: 'Deskripsi transaksi wajib diisi.' };
+  }
+  if (amount <= 0) {
+    return { success: false, error: 'Jumlah harus lebih besar dari Rp0.' };
+  }
+  if (amount > 999_999_999_999) {
+    return { success: false, error: 'Jumlah melebihi batas maksimum.' };
+  }
+  if (!txDateRaw) {
+    return { success: false, error: 'Tanggal transaksi wajib diisi.' };
+  }
+
+  const txDatePrefix = txDateRaw.slice(0, 10);
+  let txDateIso;
+  if (txDateRaw.length === 10) {
+    txDateIso = new Date(`${txDateRaw}T12:00:00.000Z`).toISOString();
+  } else {
+    try {
+      txDateIso = new Date(txDateRaw).toISOString();
+    } catch {
+      txDateIso = new Date().toISOString();
+    }
+  }
+
+  // Account validation
+  let targetAccountId = null;
+  const accountIdRaw = formData.get('account_id');
+  if (accountIdRaw && accountIdRaw !== '__UNASSIGNED__' && accountIdRaw !== '') {
+    const parsedId = parseInt(accountIdRaw, 10);
+    if (!isNaN(parsedId)) {
+      targetAccountId = parsedId;
+    }
+  }
+
+  // ATOMIC RECORDING WORKFLOW
+  const tx = await db.transaction('write');
+  try {
+    // 1. Fetch occurrence and verify ownership + PENDING state
+    const occRes = await tx.execute({
+      sql: 'SELECT id, user_id, rule_id, due_date, status FROM recurring_occurrences WHERE id = ? AND user_id = ?',
+      args: [occurrenceId, userId]
+    });
+
+    if (occRes.rows.length === 0) {
+      await tx.rollback();
+      return { success: false, error: 'Jadwal rutin tidak ditemukan.' };
+    }
+
+    const occ = occRes.rows[0];
+    if (occ.status !== 'PENDING') {
+      await tx.rollback();
+      return { success: false, error: 'Transaksi rutin ini sudah dicatat atau dilewati.' };
+    }
+
+    // 2. Validate account if selected
+    if (targetAccountId) {
+      const accRes = await tx.execute({
+        sql: 'SELECT id, name, opening_date, archived_at FROM accounts WHERE id = ? AND user_id = ?',
+        args: [targetAccountId, userId]
+      });
+      if (accRes.rows.length === 0) {
+        await tx.rollback();
+        return { success: false, error: 'Akun tidak ditemukan.' };
+      }
+      const acc = accRes.rows[0];
+      if (acc.archived_at) {
+        await tx.rollback();
+        return { success: false, error: `Akun "${acc.name}" telah diarsipkan. Pilih akun aktif untuk mencatat transaksi.` };
+      }
+      if (txDatePrefix < String(acc.opening_date).slice(0, 10)) {
+        const formattedOpening = formatFullDate(acc.opening_date);
+        await tx.rollback();
+        return {
+          success: false,
+          error: `Transaksi terjadi sebelum tanggal mulai ${acc.name} (${formattedOpening}).`
+        };
+      }
+    }
+
+    // 3. Create real transaction in expenses table
+    const insRes = await tx.execute({
+      sql: `INSERT INTO expenses (user_id, amount, description, date, category, notes, is_recurring, type, account_id)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+      args: [userId, amount, description, txDateIso, category, notes, type, targetAccountId]
+    });
+    const createdTxId = Number(insRes.lastInsertRowid);
+
+    // 4. Mark occurrence as POSTED with transaction_id link
+    await tx.execute({
+      sql: `UPDATE recurring_occurrences 
+            SET status = 'POSTED', transaction_id = ?, resolved_at = ?, updated_at = ?
+            WHERE id = ? AND user_id = ?`,
+      args: [createdTxId, new Date().toISOString(), new Date().toISOString(), occurrenceId, userId]
+    });
+
+    await tx.commit();
+  } catch (err) {
+    await tx.rollback();
+    throw err;
+  }
+
+  revalidatePath('/');
+  revalidatePath('/transaksi');
+  revalidatePath('/akun');
+  revalidatePath('/rutin');
+  revalidatePath('/analisis');
+  revalidatePath('/budget');
   return { success: true };
 }
 

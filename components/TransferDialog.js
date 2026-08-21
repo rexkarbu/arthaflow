@@ -233,7 +233,7 @@ function TransferDialogContent({ accounts, defaultFromId, onClose }) {
                 className="input amount-input"
                 placeholder="0"
                 value={amountStr}
-                onChange={(e) => setAmountStr(e.target.value)}
+                onChange={(raw, formatted) => setAmountStr(formatted)}
                 required
                 autoFocus
               />

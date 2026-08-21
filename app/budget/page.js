@@ -1,4 +1,4 @@
-import { getExpenses, getBudget, getCategoryBudgets, getCategories, getAuthSession, seedRecurringExpenses } from "@/app/actions";
+import { getExpenses, getBudget, getCategoryBudgets, getCategories, getAuthSession } from "@/app/actions";
 import AppShell from "@/components/AppShell";
 import BudgetBar from "@/components/BudgetBar";
 import CategoryBudgetManager from "@/components/CategoryBudgetManager";
@@ -25,8 +25,6 @@ export default async function BudgetPage(props) {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const selectedMonth = monthParam || currentMonth;
-
-  await seedRecurringExpenses(selectedMonth);
 
   const [year, month] = selectedMonth.split("-");
   const dateObj = new Date(parseInt(year), parseInt(month) - 1);

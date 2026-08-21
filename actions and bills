@@ -1,0 +1,25 @@
+warning: in the working copy of 'app/api/backup/route.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/budget/page.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/page.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/transaksi/page.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/CurrencyInput.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ExpenseList.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ExtendHistoryDialog.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/TransferDialog.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/db.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scratch/test_http_routes.js', LF will be replaced by CRLF the next time Git touches it
+ app/actions.js                    | 751 [32m+++++++++++++++++++++++++++++++++++[m[31m---[m
+ app/api/backup/route.js           |  53 [32m++[m[31m-[m
+ app/budget/page.js                |   4 [32m+[m[31m-[m
+ app/globals.css                   | 396 [32m++++++++++++++++++++[m
+ app/page.js                       |   4 [32m+[m[31m-[m
+ app/transaksi/page.js             |  25 [32m+[m[31m-[m
+ components/CurrencyInput.js       |   9 [32m+[m[31m-[m
+ components/ExpenseList.js         |   2 [32m+[m[31m-[m
+ components/ExtendHistoryDialog.js |   4 [32m+[m[31m-[m
+ components/TransferDialog.js      |   2 [32m+[m[31m-[m
+ data.db-wal                       | Bin [31m453232[m -> [32m1718072[m bytes
+ lib/db.js                         |  50 [32m+++[m
+ scratch/test_http_routes.js       |   2 [32m+[m[31m-[m
+ 13 files changed, 1229 insertions(+), 73 deletions(-)

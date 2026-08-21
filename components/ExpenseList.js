@@ -657,7 +657,7 @@ export default function ExpenseList({
                       <CurrencyInput
                         name="amount"
                         className="input edit-input-sm"
-                        value={exp.amount}
+                        defaultValue={exp.amount}
                         required
                         style={{ flex: 1 }}
                         aria-label="Jumlah transaksi"

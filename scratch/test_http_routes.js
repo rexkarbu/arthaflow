@@ -1,5 +1,5 @@
 async function testRoutes() {
-  const routes = ['/', '/transaksi', '/akun', '/analisis', '/budget', '/tujuan', '/pengaturan'];
+  const routes = ['/', '/transaksi', '/rutin', '/akun', '/analisis', '/budget', '/tujuan', '/pengaturan'];
   console.log('Testing HTTP routes on localhost:3000...\n');
 
   for (const route of routes) {
